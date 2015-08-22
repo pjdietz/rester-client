@@ -34,7 +34,7 @@ describe("String Parser", function () {
         headers = [];
 
         parser = new StringParser();
-        parser.on("headerLine", function (line) {
+        parser.on("header", function (line) {
             headers.push(line);
         });
         parser.parse(request);
