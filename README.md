@@ -17,3 +17,12 @@ npm install -g istanbul
 istanbul cover _mocha -- -R spec
 open coverage/lcov-report/index.html
 ```
+
+## Documentation
+
+To generate documentation:
+
+```bash
+grunt jsdoc
+open doc/index.html
+```
