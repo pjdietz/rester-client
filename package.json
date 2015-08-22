@@ -1,0 +1,19 @@
+{
+    "name": "rester-core",
+    "version": "0.1.0",
+    "description": "Library for making HTTP requuests from a text file or string",
+    "author": "PJ Dietz <pjdietz@gmail.com>",
+    "main": "lib/index.js",
+    "scripts": {
+        "test": "make test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pjdietz/rester-core.git"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "chai": "^3.2.0",
+        "mocha": "^2.2.5"
+    }
+}
