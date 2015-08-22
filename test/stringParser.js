@@ -59,4 +59,15 @@ describe("String Parser", function () {
         bodyString.should.equal("Here is the body");
     });
 
+    it("Receives end event", function () {
+        var parser, ended;
+        ended = false;
+        parser = new StringParser();
+        parser.on("end", function () {
+            ended = true;
+        });
+        parser.parse(request);
+        assert(ended);
+    });
+
 });
