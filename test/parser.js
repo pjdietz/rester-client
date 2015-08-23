@@ -202,6 +202,29 @@ describe("Parser", function () {
             });
         });
 
+        describe("Configuration", function () {
+            it("Parses confguration options with : separator", function () {
+                var parser, configuration;
+                parser = new Parser({
+                    stringParser: stringParser
+                });
+                parser.parse("", null, function (rqst, conf) {
+                    configuration = conf;
+                });
+                configuration.protocol.should.equal("https");
+            });
+            it("Parses confguration options with = separator", function () {
+                var parser, configuration;
+                parser = new Parser({
+                    stringParser: stringParser
+                });
+                parser.parse("", null, function (rqst, conf) {
+                    configuration = conf;
+                });
+                configuration.port.should.equal("8080");
+            });
+        });
+
     });
 
 });
