@@ -154,4 +154,54 @@ describe("Parser", function () {
 
     });
 
+    describe("Header Lines", function () {
+
+        var stringParser;
+
+        stringParser = new EventEmitter();
+        stringParser.parse = function () {
+            this.emit("requestLine", "/");
+            this.emit("header", "Cache-control: no-cache");
+            this.emit("header", "Content-type: text/plain");
+            this.emit("header", "?cat=Molly");
+            this.emit("header", "  & dog: Bear the Dog");
+            this.emit("header", "  @port=8080");
+            this.emit("header", "@protocol: https");
+            this.emit("header", "# This is a comment");
+            this.emit("end");
+        };
+
+        describe("Headers", function () {
+            it("Parses headers", function () {
+                var parser, parsedRequestOptions;
+                parser = new Parser({
+                    stringParser: stringParser
+                });
+                parser.parse("", null, function (rqst, conf) {
+                    parsedRequestOptions = rqst;
+                });
+                parsedRequestOptions.headers["Cache-control"].should.equal("no-cache");
+                parsedRequestOptions.headers["Content-type"].should.equal("text/plain");
+            });
+            it("Does not parse non-headers as headers", function () {
+                var parser, parsedRequestOptions, count, headers, property;
+                parser = new Parser({
+                    stringParser: stringParser
+                });
+                parser.parse("", null, function (rqst, conf) {
+                    parsedRequestOptions = rqst;
+                });
+                count = 0;
+                headers = parsedRequestOptions.headers;
+                for (property in headers) {
+                    if (headers.hasOwnProperty(property)) {
+                       ++count;
+                    }
+                }
+                count.should.equal(2);
+            });
+        });
+
+    });
+
 });
