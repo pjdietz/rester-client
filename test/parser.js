@@ -1,5 +1,4 @@
-/* jshint node: true */
-/* globals describe, it */
+/* jshint node: true, mocha: true */
 "use strict";
 
 var assert = require("chai").assert,
