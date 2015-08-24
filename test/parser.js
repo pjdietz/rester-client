@@ -173,6 +173,9 @@ describe("Parser", function () {
             this.emit("header", "  & hamster: Fizzgig the Hammie");
             this.emit("header", "  @port=8080");
             this.emit("header", "@protocol: https");
+            this.emit("header", "?noop");
+            this.emit("header", "@noop");
+            this.emit("header", "@colon:before=");
             this.emit("header", "# This is a comment");
             this.emit("end");
         };
