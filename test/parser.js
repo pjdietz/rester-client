@@ -1,3 +1,7 @@
+/* jshint node: true */
+/* globals describe, it */
+"use strict";
+
 var assert = require("chai").assert,
     should = require("chai").should(),
     EventEmitter = require("events").EventEmitter,
@@ -236,21 +240,20 @@ describe("Parser", function () {
                 request = rqst;
             });
             query = url.parse(request.path, true).query;
-            console.log(query);
             it("Parses query parameters beginning with ?", function () {
-                query["cat"].should.equal("Molly");
+                query.cat.should.equal("Molly");
             });
             it("Parses query parameters beginning with &", function () {
-                query["dog"].should.equal("Bear");
+                query.dog.should.equal("Bear");
             });
             it("Parses query parameters with = separator", function () {
-                query["cat"].should.equal("Molly");
+                query.cat.should.equal("Molly");
             });
             it("Parses query parameters with : separator", function () {
-                query["dog"].should.equal("Bear");
+                query.dog.should.equal("Bear");
             });
             it("Parses query parameters with space after starting character", function () {
-                query["hamster"].should.equal("Fizzgig the Hammie");
+                query.hamster.should.equal("Fizzgig the Hammie");
             });
         });
     });

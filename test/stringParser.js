@@ -1,6 +1,10 @@
+/* jshint node: true */
+/* globals describe, it */
+"use strict";
+
 var assert = require("chai").assert,
     should = require("chai").should(),
-    StringParser = require("../lib/stringParser").StringParser;
+    StringParser = require("../lib/stringParser").StringParser,
     request = [
         "",
         "",
