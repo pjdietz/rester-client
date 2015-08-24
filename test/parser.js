@@ -1,7 +1,8 @@
 var assert = require("chai").assert,
     should = require("chai").should(),
     EventEmitter = require("events").EventEmitter,
-    Parser = require("../lib/parser").Parser;
+    Parser = require("../lib/parser").Parser,
+    url = require("url");
 
 describe("Parser", function () {
 
@@ -164,7 +165,8 @@ describe("Parser", function () {
             this.emit("header", "Cache-control: no-cache");
             this.emit("header", "Content-type: text/plain");
             this.emit("header", "?cat=Molly");
-            this.emit("header", "  & dog: Bear the Dog");
+            this.emit("header", "&dog:Bear");
+            this.emit("header", "  & hamster: Fizzgig the Hammie");
             this.emit("header", "  @port=8080");
             this.emit("header", "@protocol: https");
             this.emit("header", "# This is a comment");
@@ -225,6 +227,31 @@ describe("Parser", function () {
             });
         });
 
+        describe("Query", function () {
+            var parser, request, query;
+            parser = new Parser({
+                stringParser: stringParser
+            });
+            parser.parse("", null, function (rqst, conf) {
+                request = rqst;
+            });
+            query = url.parse(request.path, true).query;
+            console.log(query);
+            it("Parses query parameters beginning with ?", function () {
+                query["cat"].should.equal("Molly");
+            });
+            it("Parses query parameters beginning with &", function () {
+                query["dog"].should.equal("Bear");
+            });
+            it("Parses query parameters with = separator", function () {
+                query["cat"].should.equal("Molly");
+            });
+            it("Parses query parameters with : separator", function () {
+                query["dog"].should.equal("Bear");
+            });
+            it("Parses query parameters with space after starting character", function () {
+                query["hamster"].should.equal("Fizzgig the Hammie");
+            });
+        });
     });
-
 });
