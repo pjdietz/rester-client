@@ -1,11 +1,16 @@
-/* jshint node: true, mocha: true */
+/* jshint node: true, mocha: true, expr: true */
 "use strict";
 
-var assert = require("chai").assert,
-    should = require("chai").should(),
+var chai = require("chai"),
+    assert = chai.assert,
+    sinon = require("sinon"),
+    sinonChai = require("sinon-chai"),
     EventEmitter = require("events").EventEmitter,
     Requester = require("../lib/requester").Requester,
     url = require("url");
+
+chai.should();
+chai.use(sinonChai);
 
 describe("Requester", function () {
 
@@ -19,18 +24,16 @@ describe("Requester", function () {
     describe("Requesting", function () {
         it("Passes request options to getRequest", function () {
             var requester,
-                passedRequestOptions,
                 options;
 
             requester = new Requester();
-            requester.getRequest = function (opts) {
-                passedRequestOptions = opts;
-            };
+            requester.getRequest = sinon.spy();
 
             options = {};
             requester.request(options);
 
-            passedRequestOptions.should.equal(options);
+            requester.getRequest.should.have.been.calledOnce;
+            requester.getRequest.should.have.been.calledWith(options);
         });
     });
 
