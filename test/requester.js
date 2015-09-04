@@ -12,6 +12,10 @@ var chai = require("chai"),
 chai.should();
 chai.use(sinonChai);
 
+function DummyClientRequest() {
+    this.end = sinon.spy(function () {});
+}
+
 describe("Requester", function () {
 
     describe("Construction", function () {
@@ -23,17 +27,46 @@ describe("Requester", function () {
 
     describe("Requesting", function () {
         it("Passes request options to getRequest", function () {
-            var requester,
-                options;
+            var requester = new Requester(),
+                options = {};
 
-            requester = new Requester();
-            requester.getRequest = sinon.spy();
-
-            options = {};
+            requester.getRequest = sinon.spy(function () {
+                return new DummyClientRequest();
+            });
             requester.request(options);
-
             requester.getRequest.should.have.been.calledOnce;
             requester.getRequest.should.have.been.calledWith(options);
+        });
+
+        it("Emits response event", function () {
+            var requester = new Requester(),
+                expectedResponse = {},
+                passedResponse;
+
+            // Provide a dummy getRequest that immediatly calls the callback,
+            // passing a response.
+            requester.getRequest = function (options, callback) {
+                if (callback) {
+                    callback(expectedResponse);
+                }
+                return new DummyClientRequest();
+            };
+            requester.on("response", function (response) {
+                passedResponse = response;
+            });
+            requester.request();
+            passedResponse.should.equal(expectedResponse);
+        });
+
+        it("Calls end() on request", function () {
+            var requester = new Requester(),
+                clientRequest = new DummyClientRequest();
+
+            requester.getRequest = function () {
+                return clientRequest;
+            };
+            requester.request();
+            clientRequest.end.should.have.been.called;
         });
     });
 
