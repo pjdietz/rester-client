@@ -39,17 +39,15 @@ describe("Parser", function () {
             ];
             tests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser, stringParser, parsedRequestOptions;
+                    var parser = new Parser(),
+                        parsedRequestOptions;
 
-                    stringParser = new EventEmitter();
-                    stringParser.parse = function () {
+                    parser.stringParser = new EventEmitter();
+                    parser.stringParser.parse = function () {
                         this.emit("requestLine", test.requestLine);
                         this.emit("end");
                     };
 
-                    parser = new Parser({
-                        stringParser: stringParser
-                    });
                     parser.parse("", null, function (rqst, conf) {
                         parsedRequestOptions = rqst;
                     });
@@ -86,18 +84,15 @@ describe("Parser", function () {
             ];
             tests.forEach(function (test) {
                 it(test.description, function () {
+                    var parser = new Parser(),
+                        parsedRequestOptions;
 
-                    var parser, stringParser, parsedRequestOptions;
-
-                    stringParser = new EventEmitter();
-                    stringParser.parse = function () {
+                    parser.stringParser = new EventEmitter();
+                    parser.stringParser.parse = function () {
                         this.emit("requestLine", test.requestLine);
                         this.emit("end");
                     };
 
-                    parser = new Parser({
-                        stringParser: stringParser
-                    });
                     parser.parse("", null, function (rqst, conf) {
                         parsedRequestOptions = rqst;
                     });
@@ -134,18 +129,15 @@ describe("Parser", function () {
             ];
             tests.forEach(function (test) {
                 it(test.description, function () {
+                    var parser = new Parser(),
+                        parsedRequestOptions;
 
-                    var parser, stringParser, parsedRequestOptions;
-
-                    stringParser = new EventEmitter();
-                    stringParser.parse = function () {
+                    parser.stringParser = new EventEmitter();
+                    parser.stringParser.parse = function () {
                         this.emit("requestLine", test.requestLine);
                         this.emit("end");
                     };
 
-                    parser = new Parser({
-                        stringParser: stringParser
-                    });
                     parser.parse("", null, function (rqst, conf) {
                         parsedRequestOptions = rqst;
                     });
@@ -181,10 +173,8 @@ describe("Parser", function () {
 
         describe("Headers", function () {
             it("Parses headers", function () {
-                var parser, parsedRequestOptions;
-                parser = new Parser({
-                    stringParser: stringParser
-                });
+                var parser = new Parser(), parsedRequestOptions;
+                parser.stringParser = stringParser;
                 parser.parse("", null, function (rqst, conf) {
                     parsedRequestOptions = rqst;
                 });
@@ -193,9 +183,8 @@ describe("Parser", function () {
             });
             it("Does not parse non-headers as headers", function () {
                 var parser, parsedRequestOptions, count, headers, property;
-                parser = new Parser({
-                    stringParser: stringParser
-                });
+                parser = new Parser();
+                parser.stringParser = stringParser;
                 parser.parse("", null, function (rqst, conf) {
                     parsedRequestOptions = rqst;
                 });
@@ -212,20 +201,18 @@ describe("Parser", function () {
 
         describe("Configuration", function () {
             it("Parses confguration options with : separator", function () {
-                var parser, configuration;
-                parser = new Parser({
-                    stringParser: stringParser
-                });
+                var parser = new Parser(),
+                    configuration;
+                parser.stringParser = stringParser;
                 parser.parse("", null, function (rqst, conf) {
                     configuration = conf;
                 });
                 configuration.protocol.should.equal("https");
             });
             it("Parses confguration options with = separator", function () {
-                var parser, configuration;
-                parser = new Parser({
-                    stringParser: stringParser
-                });
+                var parser = new Parser(),
+                    configuration;
+                parser.stringParser = stringParser;
                 parser.parse("", null, function (rqst, conf) {
                     configuration = conf;
                 });
@@ -235,9 +222,8 @@ describe("Parser", function () {
 
         describe("Query", function () {
             var parser, request, query;
-            parser = new Parser({
-                stringParser: stringParser
-            });
+            parser = new Parser();
+            parser.stringParser = stringParser;
             parser.parse("", null, function (rqst, conf) {
                 request = rqst;
             });
