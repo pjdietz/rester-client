@@ -202,21 +202,21 @@ describe("Parser", function () {
         describe("Configuration", function () {
             it("Parses confguration options with : separator", function () {
                 var parser = new Parser(),
-                    configuration;
+                    parsedRequestOptions;
                 parser.stringParser = stringParser;
-                parser.parse("", null, function (rqst, conf) {
-                    configuration = conf;
+                parser.parse("", null, function (rqst) {
+                    parsedRequestOptions = rqst;
                 });
-                configuration.protocol.should.equal("https");
+                parsedRequestOptions.protocol.should.equal("https");
             });
             it("Parses confguration options with = separator", function () {
                 var parser = new Parser(),
-                    configuration;
+                    parsedRequestOptions;
                 parser.stringParser = stringParser;
-                parser.parse("", null, function (rqst, conf) {
-                    configuration = conf;
+                parser.parse("", null, function (rqst) {
+                    parsedRequestOptions = rqst;
                 });
-                configuration.port.should.equal("8080");
+                parsedRequestOptions.port.should.equal("8080");
             });
         });
 
