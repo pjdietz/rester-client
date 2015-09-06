@@ -16,6 +16,39 @@ chai.use(sinonChai);
 
 describe("Client", function () {
 
+    var server,
+        getClient,
+        rqstOptions;
+
+    before(function () {
+        rqstOptions = {
+            method: "GET",
+            path: "/",
+            host: "localhost",
+            port: port
+        };
+        server = http.createServer(function(request, response) {
+          response.statusCode = 200;
+          response.setHeader("Content-Type", "text/plain");
+          response.setHeader("X-custom-header", "custom-header-value");
+          response.write("Hello, world!");
+          response.end();
+        }).listen(port);
+    });
+
+    after(function () {
+        server = undefined;
+    });
+
+    getClient = function () {
+        var client = new Client();
+        // Stub the parser to "parse" the request options we want.
+        sinon.stub(client.parser, "parse", function (r, c, callback) {
+            callback(rqstOptions);
+        });
+        return client;
+    };
+
     describe("Construction", function () {
         it("Creates instance with default options", function () {
             var client = new Client();
@@ -25,38 +58,7 @@ describe("Client", function () {
 
     describe("Requesting", function () {
 
-        var server,
-            rqstOptions,
-            getClient;
-
-        getClient = function () {
-            var client = new Client();
-            // Stub the parser to "parse" the request options we want.
-            sinon.stub(client.parser, "parse", function (r, c, callback) {
-                callback(rqstOptions);
-            });
-            return client;
-        };
-
-        before(function () {
-            rqstOptions = {
-                method: "GET",
-                path: "/",
-                host: "localhost",
-                port: port
-            };
-            server = http.createServer(function(request, response) {
-              response.writeHead(200, {"Content-Type": "text/plain"});
-              response.write("Hello World");
-              response.end();
-            }).listen(port);
-        });
-
-        after(function () {
-            server = undefined;
-        });
-
-        it("Passes the request to the parser", function () {
+        it("Passes string or stream request to the parser", function () {
             var client = new Client(),
                 spy = sinon.spy(client.parser, "parse"),
                 request = "GET http://localhost/";
@@ -64,7 +66,7 @@ describe("Client", function () {
             spy.should.have.been.called;
         });
 
-        it("Passes request options to getRequest", function () {
+        it("Passes parsed request options to getRequest", function () {
             var client = getClient(),
                 getRequest = sinon.spy(client, "getRequest");
                 client.request("", {});
@@ -88,8 +90,47 @@ describe("Client", function () {
         it("Emits response event", function (done) {
             var client = getClient();
             client.on("response", function (response) {
+                done();
+            });
+            client.request(rqstOptions);
+        });
+
+    });
+
+    describe("Reading response", function () {
+
+        it("Reads status code", function (done) {
+            var client = getClient();
+            client.on("response", function (response) {
                 response.statusCode.should.equal(200);
                 done();
+            });
+            client.request(rqstOptions);
+        });
+
+        it("Reads headers", function (done) {
+            var client = getClient();
+            client.on("response", function (response) {
+                response.headers["x-custom-header"].should.equal("custom-header-value");
+                done();
+            });
+            client.request(rqstOptions);
+        });
+
+        it("Response event receives response with message body", function (done) {
+            var client = getClient(),
+                expectedBody = "Hello, world!";
+            client.on("response", function (response) {
+                var actualBody = "";
+                response.statusCode.should.equal(200);
+                response.setEncoding("utf8");
+                response.on("data", function (chunk) {
+                    actualBody += chunk;
+                });
+                response.on("end", function () {
+                    actualBody.should.equal(expectedBody);
+                    done();
+                });
             });
             client.request(rqstOptions);
         });
