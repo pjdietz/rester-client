@@ -14,6 +14,12 @@ var chai = require("chai"),
 chai.should();
 chai.use(sinonChai);
 
+if (typeof String.prototype.startsWith != "function") {
+  String.prototype.startsWith = function (str){
+    return this.slice(0, str.length) == str;
+  };
+}
+
 describe("Client", function () {
 
     var server,
@@ -27,12 +33,38 @@ describe("Client", function () {
             host: "localhost",
             port: port
         };
-        server = http.createServer(function(request, response) {
-          response.statusCode = 200;
-          response.setHeader("Content-Type", "text/plain");
-          response.setHeader("X-custom-header", "custom-header-value");
-          response.write("Hello, world!");
-          response.end();
+        server = http.createServer();
+        server.on("request", function(request, response) {
+
+            if (request.url === "/") {
+                // GET /: Hello, world!
+                response.statusCode = 200;
+                response.setHeader("Content-Type", "text/plain");
+                response.setHeader("X-custom-header", "custom-header-value");
+                response.write("Hello, world!");
+                response.end();
+            } else if (request.url.startsWith("/redirect/")) {
+                // Redirect the client from /redirect/{code}/{n} to /redirect/{code}/{n-1}
+                // If n = 1, redirects to /
+                (function () {
+                    var parts, code, n, location = "/";
+                    parts = request.url.slice(1).split("/");
+                    code = parts[1];
+                    n = parseInt(parts[2], 10);
+                    if (n > 1) {
+                        location = "/redirect/" + code + "/" + (n - 1);
+                    }
+                    response.statusCode = code;
+                    response.setHeader("Location", location);
+                    response.end();
+                })();
+            } else {
+                response.statusCode = 400;
+                response.setHeader("Content-Type", "text/plain");
+                response.write("Bad request");
+                response.end();
+            }
+
         }).listen(port);
     });
 
@@ -40,11 +72,18 @@ describe("Client", function () {
         server = undefined;
     });
 
-    getClient = function () {
-        var client = new Client();
+    getClient = function (options) {
+        var client = new Client(), mergedOptions = {}, property;
+        options = options || {};
+        for (property in rqstOptions) {
+            mergedOptions[property] = rqstOptions[property];
+        }
+        for (property in options) {
+            mergedOptions[property] = options[property];
+        }
         // Stub the parser to "parse" the request options we want.
         sinon.stub(client.parser, "parse", function (r, c, callback) {
-            callback(rqstOptions);
+            callback(mergedOptions);
         });
         return client;
     };
@@ -131,6 +170,38 @@ describe("Client", function () {
                     actualBody.should.equal(expectedBody);
                     done();
                 });
+            });
+            client.request(rqstOptions);
+        });
+
+    });
+
+    describe("Redirects", function () {
+
+        it("Follows 301 redirects", function (done) {
+            var client = getClient({"path": "/redirect/301/3"}),
+                redirects = 0;
+            client.on("response", function (response) {
+                if (response.statusCode == 301) {
+                    ++redirects;
+                } else if (response.statusCode == 200) {
+                    redirects.should.equal(3);
+                    done();
+                }
+            });
+            client.request(rqstOptions);
+        });
+
+        it("Follows 302 redirects", function (done) {
+            var client = getClient({"path": "/redirect/302/3"}),
+                redirects = 0;
+            client.on("response", function (response) {
+                if (response.statusCode == 302) {
+                    ++redirects;
+                } else if (response.statusCode == 200) {
+                    redirects.should.equal(3);
+                    done();
+                }
             });
             client.request(rqstOptions);
         });
