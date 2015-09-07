@@ -6,6 +6,7 @@ var EventEmitter = require("events").EventEmitter,
     http = require("http"),
     https = require("https"),
     path = require("path"),
+    stream = require("stream"),
     url = require("url");
 
 var chai = require("chai"),
@@ -22,6 +23,13 @@ if (typeof String.prototype.startsWith != "function") {
   String.prototype.startsWith = function (str){
     return this.slice(0, str.length) == str;
   };
+}
+
+function stringToStream(string) {
+    var s = new stream.Readable();
+    s.push(string);
+    s.push(null);
+    return s;
 }
 
 // -----------------------------------------------------------------------------
@@ -62,15 +70,15 @@ describe("Client", function () {
         httpServer = http.createServer();
         httpServer.on("request", function(request, response) {
             if (request.url === "/") {
-                // GET /: Hello, world!
+                // Hello, world!
                 response.statusCode = 200;
                 response.setHeader("Content-Type", "text/plain");
                 response.setHeader("X-custom-header", "custom-header-value");
                 response.write("Hello, world!");
                 response.end();
             } else if (request.url.startsWith("/redirect/")) {
-                // Redirect the client from /redirect/{code}/{n} to /redirect/{code}/{n-1}
-                // If n = 1, redirects to /
+                // Redirect the client from /redirect/{code}/{n} to
+                // /redirect/{code}/{n-1}; If n = 1, redirects to /
                 (function () {
                     var parts, code, n, location = "/";
                     parts = request.url.slice(1).split("/");
@@ -83,6 +91,17 @@ describe("Client", function () {
                     response.setHeader("Location", location);
                     response.end();
                 })();
+            } else if (request.url === "/method") {
+                // Responds with the request's method.
+                response.statusCode = 200;
+                response.setHeader("Content-Type", "text/plain");
+                response.write(request.method);
+                response.end();
+            } else if (request.url === "/body") {
+                // Respond with the request's body.
+                response.statusCode = 200;
+                response.setHeader("Content-Type", "text/plain");
+                request.pipe(response);
             } else {
                 response.statusCode = 400;
                 response.setHeader("Content-Type", "text/plain");
@@ -99,7 +118,7 @@ describe("Client", function () {
         httpServer = undefined;
     });
 
-    getClient = function (options) {
+    getClient = function (options, body) {
         var client = new Client(), mergedOptions = {}, property;
         options = options || {};
         for (property in defaultRequestOptions) {
@@ -110,7 +129,10 @@ describe("Client", function () {
         }
         // Stub the parser to "parse" the request options we want.
         sinon.stub(client.parser, "parse", function (r, c, callback) {
-            callback(mergedOptions);
+            if (typeof body === "string") {
+                body = stringToStream(body);
+            }
+            callback(mergedOptions, body);
         });
         return client;
     };
@@ -166,6 +188,56 @@ describe("Client", function () {
             client.request(defaultRequestOptions);
         });
 
+        describe("Request Method", function () {
+            var methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
+            methods.forEach(function (method) {
+                it(method, function (done) {
+                    var client = getClient({
+                            method: method,
+                            path: "/method"
+                        });
+                    client.on("response", function (response) {
+                        var actualBody = "";
+                        response.statusCode.should.equal(200);
+                        response.setEncoding("utf8");
+                        response.on("data", function (chunk) {
+                            actualBody += chunk;
+                        });
+                        response.on("end", function () {
+                            actualBody.should.equal(method);
+                            done();
+                        });
+                    });
+                    client.request(defaultRequestOptions);
+                });
+            });
+        });
+
+        it("Sends request body", function (done) {
+            var client,
+                expectedBody = "This is the message body";
+
+            client = getClient({
+                path: "/body",
+                headers: {
+                    "content-length": expectedBody.length
+                }
+            }, expectedBody);
+
+            client.on("response", function (response) {
+                var actualBody = "";
+                response.statusCode.should.equal(200);
+                response.setEncoding("utf8");
+                response.on("data", function (chunk) {
+                    actualBody += chunk;
+                });
+                response.on("end", function () {
+                    actualBody.should.equal(expectedBody);
+                    done();
+                });
+            });
+            client.request(defaultRequestOptions);
+        });
     });
 
     // -------------------------------------------------------------------------
@@ -355,6 +427,7 @@ describe("Client", function () {
 
     });
 
+    // TODO Parser needs to determine content-length
     // TODO Emits error when http.Client emits error
     // TODO Writes request body
     // TODO Redirect relative or absolute location
