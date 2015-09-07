@@ -1,15 +1,19 @@
 /* jshint node: true, mocha: true, expr: true */
 "use strict";
 
+var EventEmitter = require("events").EventEmitter,
+    fs = require("fs"),
+    http = require("http"),
+    https = require("https"),
+    path = require("path"),
+    url = require("url");
+
 var chai = require("chai"),
     assert = chai.assert,
     sinon = require("sinon"),
-    sinonChai = require("sinon-chai"),
-    http = require("http"),
-    EventEmitter = require("events").EventEmitter,
-    Client = require("../lib/client").Client,
-    url = require("url"),
-    port = 8760;
+    sinonChai = require("sinon-chai");
+
+var Client = require("../lib/client").Client;
 
 chai.should();
 chai.use(sinonChai);
@@ -20,22 +24,43 @@ if (typeof String.prototype.startsWith != "function") {
   };
 }
 
+// -----------------------------------------------------------------------------
+
 describe("Client", function () {
 
-    var server,
+    var httpServer,
+        httpsServer,
+        httpPort = 8760,
+        httpsPort = 8761,
         getClient,
-        rqstOptions;
+        defaultRequestOptions;
 
     before(function () {
-        rqstOptions = {
+        defaultRequestOptions = {
             method: "GET",
-            path: "/",
+            protocol: "http",
             host: "localhost",
-            port: port
+            path: "/",
+            port: httpPort
         };
-        server = http.createServer();
-        server.on("request", function(request, response) {
 
+        // Create and start an HTTPS server.
+        httpsServer = https.createServer({
+            key: fs.readFileSync(path.resolve(__dirname, "https/key.pem")),
+            cert: fs.readFileSync(path.resolve(__dirname, "https/cert.pem"))
+        });
+        httpsServer.on("request", function (request, response) {
+            // GET /: Hello, world!
+            response.statusCode = 200;
+            response.setHeader("Content-Type", "text/plain");
+            response.write("Hello, secret robot Internet!");
+            response.end();
+        });
+        httpsServer.listen(httpsPort);
+
+        // Create and start an HTTP server.
+        httpServer = http.createServer();
+        httpServer.on("request", function(request, response) {
             if (request.url === "/") {
                 // GET /: Hello, world!
                 response.statusCode = 200;
@@ -64,19 +89,21 @@ describe("Client", function () {
                 response.write("Bad request");
                 response.end();
             }
-
-        }).listen(port);
+        });
+        httpServer.listen(httpPort);
     });
 
     after(function () {
-        server = undefined;
+        // Unset the servers.
+        httpsServer = undefined;
+        httpServer = undefined;
     });
 
     getClient = function (options) {
         var client = new Client(), mergedOptions = {}, property;
         options = options || {};
-        for (property in rqstOptions) {
-            mergedOptions[property] = rqstOptions[property];
+        for (property in defaultRequestOptions) {
+            mergedOptions[property] = defaultRequestOptions[property];
         }
         for (property in options) {
             mergedOptions[property] = options[property];
@@ -88,12 +115,16 @@ describe("Client", function () {
         return client;
     };
 
+    // -------------------------------------------------------------------------
+
     describe("Construction", function () {
         it("Creates instance with default options", function () {
             var client = new Client();
             assert(client !== undefined);
         });
     });
+
+    // -------------------------------------------------------------------------
 
     describe("Requesting", function () {
 
@@ -110,7 +141,8 @@ describe("Client", function () {
                 getRequest = sinon.spy(client, "getRequest");
                 client.request("", {});
                 client.getRequest.should.have.been.calledOnce;
-                client.getRequest.should.have.been.calledWith(rqstOptions);
+                // TODO Account for removing protocol.
+                //client.getRequest.should.have.been.calledWith(defaultRequestOptions);
         });
 
         it("Calls end() on request", function () {
@@ -131,10 +163,12 @@ describe("Client", function () {
             client.on("response", function (response) {
                 done();
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
     });
+
+    // -------------------------------------------------------------------------
 
     describe("Reading response", function () {
 
@@ -144,7 +178,7 @@ describe("Client", function () {
                 response.statusCode.should.equal(200);
                 done();
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Reads headers", function (done) {
@@ -153,7 +187,7 @@ describe("Client", function () {
                 response.headers["x-custom-header"].should.equal("custom-header-value");
                 done();
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Response event receives response with message body", function (done) {
@@ -171,10 +205,59 @@ describe("Client", function () {
                     done();
                 });
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
     });
+
+    // -------------------------------------------------------------------------
+
+    describe("Protocol", function () {
+
+        it("Makes HTTP requests", function (done) {
+            var client = getClient(),
+                expectedBody = "Hello, world!";
+            client.on("response", function (response) {
+                var actualBody = "";
+                response.statusCode.should.equal(200);
+                response.setEncoding("utf8");
+                response.on("data", function (chunk) {
+                    actualBody += chunk;
+                });
+                response.on("end", function () {
+                    actualBody.should.equal(expectedBody);
+                    done();
+                });
+            });
+            client.request(defaultRequestOptions);
+        });
+
+        it("Makes HTTPS requests", function (done) {
+            var client = getClient({
+                    protocol: "https",
+                    port: httpsPort,
+                    rejectUnauthorized: false,
+                    requestCert: true,
+                }),
+                expectedBody = "Hello, secret robot Internet!";
+            client.on("response", function (response) {
+                var actualBody = "";
+                response.statusCode.should.equal(200);
+                response.setEncoding("utf8");
+                response.on("data", function (chunk) {
+                    actualBody += chunk;
+                });
+                response.on("end", function () {
+                    actualBody.should.equal(expectedBody);
+                    done();
+                });
+            });
+            client.request(defaultRequestOptions);
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
 
     describe("Redirects", function () {
 
@@ -192,7 +275,7 @@ describe("Client", function () {
                     done();
                 }
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Follows 302 redirects by default", function (done) {
@@ -209,7 +292,7 @@ describe("Client", function () {
                     done();
                 }
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Does not follow redirects when followRedirects is false", function (done) {
@@ -227,7 +310,7 @@ describe("Client", function () {
                 }
             });
             client.followRedirects = false;
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Does not follow redirects for disallowed status codes", function (done) {
@@ -246,7 +329,7 @@ describe("Client", function () {
             });
             client.followRedirects = true;
             client.redirectStatusCodes = [301];
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
         it("Does not follow redirects after reaching redirect limit", function (done) {
@@ -267,9 +350,13 @@ describe("Client", function () {
                 error.should.equal(Client.error.REDIRECT_LIMIT_REACHED);
                 done();
             });
-            client.request(rqstOptions);
+            client.request(defaultRequestOptions);
         });
 
     });
+
+    // TODO Emits error when http.Client emits error
+    // TODO Writes request body
+    // TODO Redirect relative or absolute location
 
 });
