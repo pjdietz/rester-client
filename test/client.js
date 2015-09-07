@@ -178,30 +178,94 @@ describe("Client", function () {
 
     describe("Redirects", function () {
 
-        it("Follows 301 redirects", function (done) {
+        it("Follows 301 redirects by default", function (done) {
             var client = getClient({"path": "/redirect/301/3"}),
-                redirects = 0;
-            client.on("response", function (response) {
-                if (response.statusCode == 301) {
+                redirects = 0,
+                expected = 3;
+            // Increment the redirect count when willRedrect is true.
+            // Check the count and finish the test case when false.
+            client.on("response", function (response, willRedirect) {
+                if (willRedirect) {
                     ++redirects;
-                } else if (response.statusCode == 200) {
-                    redirects.should.equal(3);
+                } else {
+                    redirects.should.equal(expected);
                     done();
                 }
             });
             client.request(rqstOptions);
         });
 
-        it("Follows 302 redirects", function (done) {
+        it("Follows 302 redirects by default", function (done) {
             var client = getClient({"path": "/redirect/302/3"}),
-                redirects = 0;
-            client.on("response", function (response) {
-                if (response.statusCode == 302) {
+                redirects = 0,
+                expected = 3;
+            // Increment the redirect count when willRedrect is true.
+            // Check the count and finish the test case when false.
+            client.on("response", function (response, willRedirect) {
+                if (willRedirect) {
                     ++redirects;
-                } else if (response.statusCode == 200) {
-                    redirects.should.equal(3);
+                } else {
+                    redirects.should.equal(expected);
                     done();
                 }
+            });
+            client.request(rqstOptions);
+        });
+
+        it("Does not follow redirects when followRedirects is false", function (done) {
+            var client = getClient({"path": "/redirect/301/3"}),
+                redirects = 0,
+                expected = 0;
+            // Increment the redirect count when willRedrect is true.
+            // Check the count and finish the test case when false.
+            client.on("response", function (response, willRedirect) {
+                if (willRedirect) {
+                    ++redirects;
+                } else {
+                    redirects.should.equal(expected);
+                    done();
+                }
+            });
+            client.followRedirects = false;
+            client.request(rqstOptions);
+        });
+
+        it("Does not follow redirects for disallowed status codes", function (done) {
+            var client = getClient({"path": "/redirect/302/3"}),
+                redirects = 0,
+                expected = 0;
+            // Increment the redirect count when willRedrect is true.
+            // Check the count and finish the test case when false.
+            client.on("response", function (response, willRedirect) {
+                if (willRedirect) {
+                    ++redirects;
+                } else {
+                    redirects.should.equal(expected);
+                    done();
+                }
+            });
+            client.followRedirects = true;
+            client.redirectStatusCodes = [301];
+            client.request(rqstOptions);
+        });
+
+        it("Does not follow redirects after reaching redirect limit", function (done) {
+            var client = getClient({"path": "/redirect/302/15"}),
+                redirects = 0,
+                expected = 10;
+            // Increment the redirect count each time the client emits a
+            // response and indicates it will redirect.
+            client.on("response", function (response, willRedirect) {
+                if (willRedirect) {
+                    ++redirects;
+                }
+            });
+            // Finish the test case then the client emits an error event with
+            // the code that indicates it has reached the redirect limit.
+            client.on("error", function (error) {
+                redirects.should.equal(expected);
+                error.should.equal(Client.error.REDIRECT_LIMIT_REACHED);
+                done();
             });
             client.request(rqstOptions);
         });
