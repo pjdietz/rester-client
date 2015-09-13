@@ -36,21 +36,39 @@ function stringToStream(string) {
 
 describe("Client", function () {
 
-    var httpServer,
+    var getOptions,
+        httpServer,
         httpsServer,
         httpPort = 8760,
         httpsPort = 8761,
-        getClient,
-        defaultRequestOptions;
-
-    before(function () {
-        defaultRequestOptions = {
+        defaultOptions = {
             method: "GET",
             protocol: "http",
             host: "localhost",
             path: "/",
             port: httpPort
         };
+
+    getOptions = function (options) {
+        var property, result = {};
+        // Copy defaultOptions.
+        for (property in defaultOptions) {
+            if (defaultOptions.hasOwnProperty(property)) {
+                result[property] = defaultOptions[property];
+            }
+        }
+        // Override with options.
+        if (options) {
+            for (property in options) {
+                if (options.hasOwnProperty(property)) {
+                    result[property] = options[property];
+                }
+            }
+        }
+        return result;
+    };
+
+    before(function () {
 
         // Create and start an HTTPS server.
         httpsServer = https.createServer({
@@ -118,25 +136,6 @@ describe("Client", function () {
         httpServer = undefined;
     });
 
-    getClient = function (options, body) {
-        var client = new Client(), mergedOptions = {}, property;
-        options = options || {};
-        for (property in defaultRequestOptions) {
-            mergedOptions[property] = defaultRequestOptions[property];
-        }
-        for (property in options) {
-            mergedOptions[property] = options[property];
-        }
-        // Stub the parser to "parse" the request options we want.
-        sinon.stub(client.parser, "parse", function (r, c, callback) {
-            if (typeof body === "string") {
-                body = stringToStream(body);
-            }
-            callback(mergedOptions, body);
-        });
-        return client;
-    };
-
     // -------------------------------------------------------------------------
 
     describe("Construction", function () {
@@ -146,53 +145,25 @@ describe("Client", function () {
         });
     });
 
-    // -------------------------------------------------------------------------
-
-    describe("Requesting", function () {
-
-        it("Passes string or stream request to the parser", function () {
-            var client = new Client(),
-                spy = sinon.spy(client.parser, "parse"),
-                request = "GET http://localhost/";
-            client.request(request, {});
-            spy.should.have.been.called;
-        });
-
-        it("Passes parsed request options to getRequest", function () {
-            var client = getClient(),
-                getRequest = sinon.spy(client, "getRequest");
-                client.request("", {});
-                client.getRequest.should.have.been.calledOnce;
-                // TODO Account for removing protocol.
-                //client.getRequest.should.have.been.calledWith(defaultRequestOptions);
-        });
-
-        it("Calls end() on request", function () {
-            var client = getClient(),
-                end,
-                // Stub getRequest to return a spy client.
-                getRequest = sinon.stub(client, "getRequest", function (options, callback) {
-                    var request = http.request(options, callback);
-                    end = sinon.spy(request, "end");
-                    return request;
-                });
-            client.request("", {});
+    describe("Making requests", function () {
+        it("Calls end() on http(s).ClientRequest instance", function () {
+            var client, createRequest, end;
+            client = new Client(),
+            // Stub getRequest to return a spy client.
+            createRequest = sinon.stub(client, "_createRequest", function (options, callback) {
+                var request = http.request(options, callback);
+                end = sinon.spy(request, "end");
+                return request;
+            });
+            client.request(getOptions());
             end.should.have.been.called;
         });
-
-        it("Emits response event", function (done) {
-            var client = getClient();
-            client.on("response", function (response) {
-                done();
-            });
-            client.request(defaultRequestOptions);
-        });
-
-        describe("Request Method", function () {
+        describe("Sends requests method", function () {
             var methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
             methods.forEach(function (method) {
                 it(method, function (done) {
-                    var client = getClient({
+                    var client = new Client(),
+                        options = getOptions({
                             method: method,
                             path: "/method"
                         });
@@ -208,22 +179,19 @@ describe("Client", function () {
                             done();
                         });
                     });
-                    client.request(defaultRequestOptions);
+                    client.request(options);
                 });
             });
         });
-
         it("Sends request body", function (done) {
-            var client,
-                expectedBody = "This is the message body";
-
-            client = getClient({
-                path: "/body",
-                headers: {
-                    "content-length": expectedBody.length
-                }
-            }, expectedBody);
-
+            var client = new Client(),
+                expectedBody = "This is the message body",
+                options = getOptions({
+                    path: "/body",
+                    headers: {
+                        "content-length": expectedBody.length
+                    }
+                });
             client.on("response", function (response) {
                 var actualBody = "";
                 response.statusCode.should.equal(200);
@@ -236,58 +204,27 @@ describe("Client", function () {
                     done();
                 });
             });
-            client.request(defaultRequestOptions);
+            client.request(options, stringToStream(expectedBody));
         });
     });
 
     // -------------------------------------------------------------------------
 
     describe("Reading response", function () {
-
-        it("Reads status code", function (done) {
-            var client = getClient();
+        it("Emits response event", function (done) {
+            var client = new Client();
             client.on("response", function (response) {
-                response.statusCode.should.equal(200);
                 done();
             });
-            client.request(defaultRequestOptions);
+            client.request(getOptions());
         });
-
-        it("Reads headers", function (done) {
-            var client = getClient();
-            client.on("response", function (response) {
-                response.headers["x-custom-header"].should.equal("custom-header-value");
-                done();
-            });
-            client.request(defaultRequestOptions);
-        });
-
-        it("Response event receives response with message body", function (done) {
-            var client = getClient(),
-                expectedBody = "Hello, world!";
-            client.on("response", function (response) {
-                var actualBody = "";
-                response.statusCode.should.equal(200);
-                response.setEncoding("utf8");
-                response.on("data", function (chunk) {
-                    actualBody += chunk;
-                });
-                response.on("end", function () {
-                    actualBody.should.equal(expectedBody);
-                    done();
-                });
-            });
-            client.request(defaultRequestOptions);
-        });
-
     });
 
     // -------------------------------------------------------------------------
 
     describe("Protocol", function () {
-
         it("Makes HTTP requests", function (done) {
-            var client = getClient(),
+            var client = new Client(),
                 expectedBody = "Hello, world!";
             client.on("response", function (response) {
                 var actualBody = "";
@@ -301,11 +238,11 @@ describe("Client", function () {
                     done();
                 });
             });
-            client.request(defaultRequestOptions);
+            client.request(getOptions());
         });
-
         it("Makes HTTPS requests", function (done) {
-            var client = getClient({
+            var client = new Client(),
+                options = getOptions({
                     protocol: "https",
                     port: httpsPort,
                     rejectUnauthorized: false,
@@ -324,17 +261,16 @@ describe("Client", function () {
                     done();
                 });
             });
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
     });
 
     // -------------------------------------------------------------------------
 
     describe("Redirects", function () {
-
         it("Follows 301 redirects by default", function (done) {
-            var client = getClient({"path": "/redirect/301/3"}),
+            var client = new Client(),
+                options = getOptions({"path": "/redirect/301/3"}),
                 redirects = 0,
                 expected = 3;
             // Increment the redirect count when willRedrect is true.
@@ -347,11 +283,11 @@ describe("Client", function () {
                     done();
                 }
             });
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
         it("Follows 302 redirects by default", function (done) {
-            var client = getClient({"path": "/redirect/302/3"}),
+            var client = new Client(),
+                options = getOptions({"path": "/redirect/302/3"}),
                 redirects = 0,
                 expected = 3;
             // Increment the redirect count when willRedrect is true.
@@ -364,11 +300,11 @@ describe("Client", function () {
                     done();
                 }
             });
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
         it("Does not follow redirects when followRedirects is false", function (done) {
-            var client = getClient({"path": "/redirect/301/3"}),
+            var client = new Client(),
+                options = getOptions({"path": "/redirect/302/3"}),
                 redirects = 0,
                 expected = 0;
             // Increment the redirect count when willRedrect is true.
@@ -382,11 +318,11 @@ describe("Client", function () {
                 }
             });
             client.followRedirects = false;
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
         it("Does not follow redirects for disallowed status codes", function (done) {
-            var client = getClient({"path": "/redirect/302/3"}),
+            var client = new Client(),
+                options = getOptions({"path": "/redirect/302/3"}),
                 redirects = 0,
                 expected = 0;
             // Increment the redirect count when willRedrect is true.
@@ -401,11 +337,11 @@ describe("Client", function () {
             });
             client.followRedirects = true;
             client.redirectStatusCodes = [301];
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
         it("Does not follow redirects after reaching redirect limit", function (done) {
-            var client = getClient({"path": "/redirect/302/15"}),
+            var client = new Client(),
+                options = getOptions({"path": "/redirect/302/15"}),
                 redirects = 0,
                 expected = 10;
             // Increment the redirect count each time the client emits a
@@ -422,14 +358,14 @@ describe("Client", function () {
                 error.should.equal(Client.error.REDIRECT_LIMIT_REACHED);
                 done();
             });
-            client.request(defaultRequestOptions);
+            client.request(options);
         });
-
     });
 
-    // TODO Parser needs to determine content-length
-    // TODO Emits error when http.Client emits error
-    // TODO Writes request body
-    // TODO Redirect relative or absolute location
+//     // TODO Read request body from file
+//     // TODO Write response body to file
+//     // TODO Emits error when http.Client emits error
+//     // TODO Writes request body
+//     // TODO Redirect relative or absolute location
 
 });
