@@ -415,7 +415,15 @@ describe("Parser", function () {
                 "",
                 "cat=molly",
                 " dog: bear",
-                "guineaPigs: Clyde and Claude"
+                "guineaPigs: Clyde and Claude",
+                "# comment: Ignore this line.",
+                '    quoted = """This is the value""" This is ignored.',
+                'comments: """Dear Life Cereal, Where do you get off?',
+                'Part of a balanced breakfast and delicious? Who do you think',
+                'you are? By now, you may have guessed I\'m speaking',
+                'ironically and have nothing but good things to say about what',
+                'you do. Life Cereal, do not change a thing. Signed: Peter',
+                'Griffin. Dictated but not read."""',
             ].join("\n");
 
             it("Adds Content-type header when @form option is true", function (done) {
@@ -443,11 +451,45 @@ describe("Parser", function () {
                         done();
                     });
                 });
+                it("Skips lines beginning with #", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString();
+                        expect(bodyString).to.not.contain("Ignore");
+                        done();
+                    });
+                });
                 it("Percent encodes values", function (done) {
                     var parser = new Parser();
                     parser.parse(request, function (error, options, body) {
                         var bodyString = body.read().toString();
                         expect(bodyString).to.contain("guineaPigs=Clyde%20and%20Claude");
+                        done();
+                    });
+                });
+                it("Parses values in tripple quotes.", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString();
+                        expect(bodyString).to.contain("quoted=This%20is%20the%20value");
+                        done();
+                    });
+                });
+
+                it("Parses multi-line fields values", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString(), expected;
+                        expected = [
+                            'Dear Life Cereal, Where do you get off?',
+                            'Part of a balanced breakfast and delicious? Who do you think',
+                            'you are? By now, you may have guessed I\'m speaking',
+                            'ironically and have nothing but good things to say about what',
+                            'you do. Life Cereal, do not change a thing. Signed: Peter',
+                            'Griffin. Dictated but not read.'
+                        ].join("\n");
+                        expected = "comments=" + encodeURIComponent(expected);
+                        expect(bodyString).to.contain(expected);
                         done();
                     });
                 });
