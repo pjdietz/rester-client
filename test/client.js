@@ -1,13 +1,11 @@
 /* jshint node: true, mocha: true, expr: true */
 "use strict";
 
-var EventEmitter = require("events").EventEmitter,
-    fs = require("fs"),
+var fs = require("fs"),
     http = require("http"),
     https = require("https"),
     path = require("path"),
-    stream = require("stream"),
-    url = require("url");
+    stream = require("stream");
 
 var chai = require("chai"),
     assert = chai.assert,

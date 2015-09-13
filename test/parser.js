@@ -11,6 +11,8 @@ var Parser = require("../lib/parser").Parser;
 // Does nothing, but provides coverage filtered for in.
 Object.prototype.notOwn = function () {};
 
+// -----------------------------------------------------------------------------
+
 describe("Parser", function () {
 
     describe("Construction", function () {
@@ -19,6 +21,8 @@ describe("Parser", function () {
             assert(parser !== undefined);
         });
     });
+
+    // -------------------------------------------------------------------------
 
     describe("Request line", function () {
 
@@ -177,6 +181,8 @@ describe("Parser", function () {
 
     }); // Request line
 
+    // -------------------------------------------------------------------------
+
     describe("Headers, query, and options", function () {
 
         var request = [
@@ -210,11 +216,15 @@ describe("Parser", function () {
                     "Content-type": "application/json",
                 };
                 for (header in headers) {
-                    expect(options.headers[header]).to.equal(headers[header]);
+                    if (headers.hasOwnProperty(header)) {
+                        expect(options.headers[header]).to.equal(headers[header]);
+                    }
                 }
                 done();
             });
         });
+
+        // ---------------------------------------------------------------------
 
         describe("Parses query", function () {
 
@@ -282,6 +292,8 @@ describe("Parser", function () {
             });
 
         }); // Query
+
+        // ---------------------------------------------------------------------
 
         describe("Parses options", function () {
 
@@ -362,6 +374,8 @@ describe("Parser", function () {
 
     });
 
+    // -------------------------------------------------------------------------
+
     describe("Body", function () {
         describe("String body", function () {
 
@@ -424,6 +438,8 @@ describe("Parser", function () {
             });
         });
 
+        // ---------------------------------------------------------------------
+
         describe("Forms", function () {
 
             var request = [
@@ -452,6 +468,8 @@ describe("Parser", function () {
                     done();
                 });
             });
+
+            // -----------------------------------------------------------------
 
             describe("Encodes form fields when @form option is true", function () {
                 it("Uses = separator", function (done) {
@@ -503,6 +521,9 @@ describe("Parser", function () {
                         done();
                     });
                 });
+
+                // -------------------------------------------------------------
+
                 describe("Comments", function () {
                     it("Skips lines beginning with #", function (done) {
                         var parser = new Parser();
@@ -522,6 +543,9 @@ describe("Parser", function () {
                     });
                 });
             });
+
+            // -----------------------------------------------------------------
+
             describe("Empty form", function () {
                 var request = [
                     "GET http://mydomain.com/cats",
@@ -555,6 +579,8 @@ describe("Parser", function () {
                 });
             });
         });
+
+        // ---------------------------------------------------------------------
 
         describe("Does not override explicitly set headers", function () {
 
