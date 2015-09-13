@@ -341,4 +341,15 @@ describe("Parser", function () {
 
     });
 
+    describe("Body", function () {
+        describe("String body", function () {
+            it("Provides body as stream", function () { assert(false); });
+            it("Adds content-length header", function () { assert(false); });
+        });
+        describe("File body", function () {
+            it("Provides body as stream", function () { assert(false); });
+            it("Adds content-length header", function () { assert(false); });
+        });
+    });
+
 });
