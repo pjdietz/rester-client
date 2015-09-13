@@ -8,6 +8,9 @@ var assert = require("chai").assert,
 
 var Parser = require("../lib/parser").Parser;
 
+// Does nothing, but provides coverage filtered for in.
+Object.prototype.notOwn = function () {};
+
 describe("Parser", function () {
 
     describe("Construction", function () {
@@ -191,7 +194,7 @@ describe("Parser", function () {
             "@redirectStatusCodes: [301, 302]",
             "@redirectLimit: 5",
             "@stringOption: \"stringValue\"",
-            "@unquotedStringOption: stringValue",
+            "@unquotedStringOption: stringValue=2",
             "",
             "{\"name\": \"molly\"}",
             ""
@@ -332,7 +335,7 @@ describe("Parser", function () {
                 var parser = new Parser();
                 parser.parse(request, function (error, options, body) {
                     expect(options.unquotedStringOption).to.be.a("string");
-                    expect(options.unquotedStringOption).to.equal("stringValue");
+                    expect(options.unquotedStringOption).to.equal("stringValue=2");
                     done();
                 });
             });
@@ -346,9 +349,10 @@ describe("Parser", function () {
             it("Provides body as stream", function () { assert(false); });
             it("Adds content-length header", function () { assert(false); });
         });
-        describe("File body", function () {
-            it("Provides body as stream", function () { assert(false); });
-            it("Adds content-length header", function () { assert(false); });
+        describe("Forms", function () {
+            it("Encodes body for form when @form option is true", function () { assert(false); });
+            it("Adds Content-type header when @form option is true", function () { assert(false); });
+            it("Returns error when body cannot be encoded as a form", function () { assert(false); });
         });
     });
 
