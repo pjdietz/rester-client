@@ -1,4 +1,4 @@
-/* jshint node: true, mocha: true */
+/* jshint node: true, mocha: true, -W030 */
 "use strict";
 
 var url = require("url");
@@ -346,14 +346,76 @@ describe("Parser", function () {
 
     describe("Body", function () {
         describe("String body", function () {
-            it("Provides body as stream", function () { assert(false); });
-            it("Adds content-length header", function () { assert(false); });
+
+            var request = [
+                "POST http://mydomain.com/cats",
+                "Host: localhost",
+                "Content-type: application/json",
+                "",
+                '{"name": "molly"}'
+            ].join("\n");
+
+            it("Provides body as stream", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var bodyString = body.read().toString();
+                    expect(bodyString).to.equal('{"name": "molly"}');
+                    done();
+                });
+            });
+            it("Adds content-length header", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.headers["content-length"]).to.equal("17");
+                    done();
+                });
+            });
         });
+
+        describe("No string body", function () {
+
+            var request = [
+                "GET http://mydomain.com/cats",
+                "Host: localhost",
+                "Content-type: application/json",
+                "",
+                "",
+                ""
+            ].join("\n");
+
+            it("Body is undefined when no body is present.", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(body).to.be.undefined;
+                    done();
+                });
+            });
+            it("Body is undefined when no body is present.", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var countHeaders = 0, header;
+                    for (header in options.headers) {
+                        if (options.headers.hasOwnProperty(header) &&
+                                (header.toLowerCase() === "content-length")) {
+                            ++countHeaders;
+                        }
+                    }
+                    expect(countHeaders).to.equal(0);
+                    done();
+                });
+            });
+        });
+
         describe("Forms", function () {
-            it("Encodes body for form when @form option is true", function () { assert(false); });
-            it("Adds Content-type header when @form option is true", function () { assert(false); });
-            it("Returns error when body cannot be encoded as a form", function () { assert(false); });
+            // it("Encodes body for form when @form option is true", function () { assert(false); });
+            // it("Adds Content-type header when @form option is true", function () { assert(false); });
+            // it("Returns error when body cannot be encoded as a form", function () { assert(false); });
         });
+
+        // TODO Does not override explicitly set headers
+        // TODO content-length
+        // TODO content-type
+
     });
 
 });
