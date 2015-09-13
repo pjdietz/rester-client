@@ -188,7 +188,8 @@ describe("Parser", function () {
             "Host: localhost",
             "Cache-control: no-cache",
             "Content-type: application/json",
-            "# This is a comment",
+            "  # This is a pound-comment",
+            "  // This is a slash-comment",
             "@flag",
             "@followRedirects: true",
             "@redirectStatusCodes: [301, 302]",
@@ -342,6 +343,23 @@ describe("Parser", function () {
 
         }); // Options
 
+        describe("Comments", function () {
+            it("Skips lines begining with #", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.toString()).to.not.contain("pound-comment");
+                    done();
+                });
+            });
+            it("Skips lines begining with //", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.toString()).to.not.contain("slash-comment");
+                    done();
+                });
+            });
+        });
+
     });
 
     describe("Body", function () {
@@ -416,8 +434,8 @@ describe("Parser", function () {
                 "cat=molly",
                 " dog: bear",
                 "guineaPigs: Clyde and Claude",
-                "# comment: Ignore this line. bumpygoose41",
-                "// comment: Ignore this too. lazywind51",
+                "  # comment: Ignore this pound-comment",
+                "  // comment: Ignore this slash-comment",
                 '    quoted = """This is the value""" This is ignored.',
                 'comments: """Dear Life Cereal, Where do you get off?',
                 'Part of a balanced breakfast and delicious? Who do you think',
@@ -490,7 +508,7 @@ describe("Parser", function () {
                         var parser = new Parser();
                         parser.parse(request, function (error, options, body) {
                             var bodyString = body.read().toString();
-                            expect(bodyString).to.not.contain("bumpygoose41");
+                            expect(bodyString).to.not.contain("pount-comment");
                             done();
                         });
                     });
@@ -498,18 +516,72 @@ describe("Parser", function () {
                         var parser = new Parser();
                         parser.parse(request, function (error, options, body) {
                             var bodyString = body.read().toString();
-                            expect(bodyString).to.not.contain("lazywind51");
+                            expect(bodyString).to.not.contain("slash-comment");
                             done();
                         });
                     });
                 });
             });
+            describe("Empty form", function () {
+                var request = [
+                    "GET http://mydomain.com/cats",
+                    "Host: localhost",
+                    "@form",
+                    "",
+                    "",
+                    ""
+                ].join("\n");
+
+                it("Body is undefined when no body is present", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        expect(body).to.be.undefined;
+                        done();
+                    });
+                });
+                it("Body is undefined when no body is present", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var countHeaders = 0, header;
+                        for (header in options.headers) {
+                            if (options.headers.hasOwnProperty(header) &&
+                                    (header.toLowerCase() === "content-length")) {
+                                ++countHeaders;
+                            }
+                        }
+                        expect(countHeaders).to.equal(0);
+                        done();
+                    });
+                });
+            });
         });
 
-        // TODO Does not override explicitly set headers
-        // TODO content-length
-        // TODO content-type
+        describe("Does not override explicitly set headers", function () {
 
+            var request = [
+                "POST /cats",
+                "Host: localhost",
+                "content-length: 100",
+                "content-type: application/json",
+                "@form",
+                "",
+                "name=molly",
+            ].join("\n");
+
+            it("Content-length", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.headers["content-length"]).to.equal("100");
+                    done();
+                });
+            });
+            it("Content-type", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.headers["content-type"]).to.equal("application/json");
+                    done();
+                });
+            });
+        });
     });
-
 });
