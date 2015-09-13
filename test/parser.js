@@ -383,14 +383,14 @@ describe("Parser", function () {
                 ""
             ].join("\n");
 
-            it("Body is undefined when no body is present.", function (done) {
+            it("Body is undefined when no body is present", function (done) {
                 var parser = new Parser();
                 parser.parse(request, function (error, options, body) {
                     expect(body).to.be.undefined;
                     done();
                 });
             });
-            it("Body is undefined when no body is present.", function (done) {
+            it("Body is undefined when no body is present", function (done) {
                 var parser = new Parser();
                 parser.parse(request, function (error, options, body) {
                     var countHeaders = 0, header;
@@ -416,7 +416,8 @@ describe("Parser", function () {
                 "cat=molly",
                 " dog: bear",
                 "guineaPigs: Clyde and Claude",
-                "# comment: Ignore this line.",
+                "# comment: Ignore this line. bumpygoose41",
+                "// comment: Ignore this too. lazywind51",
                 '    quoted = """This is the value""" This is ignored.',
                 'comments: """Dear Life Cereal, Where do you get off?',
                 'Part of a balanced breakfast and delicious? Who do you think',
@@ -451,14 +452,6 @@ describe("Parser", function () {
                         done();
                     });
                 });
-                it("Skips lines beginning with #", function (done) {
-                    var parser = new Parser();
-                    parser.parse(request, function (error, options, body) {
-                        var bodyString = body.read().toString();
-                        expect(bodyString).to.not.contain("Ignore");
-                        done();
-                    });
-                });
                 it("Percent encodes values", function (done) {
                     var parser = new Parser();
                     parser.parse(request, function (error, options, body) {
@@ -467,7 +460,7 @@ describe("Parser", function () {
                         done();
                     });
                 });
-                it("Parses values in tripple quotes.", function (done) {
+                it("Parses values in tripple quotes", function (done) {
                     var parser = new Parser();
                     parser.parse(request, function (error, options, body) {
                         var bodyString = body.read().toString();
@@ -475,7 +468,6 @@ describe("Parser", function () {
                         done();
                     });
                 });
-
                 it("Parses multi-line fields values", function (done) {
                     var parser = new Parser();
                     parser.parse(request, function (error, options, body) {
@@ -491,6 +483,24 @@ describe("Parser", function () {
                         expected = "comments=" + encodeURIComponent(expected);
                         expect(bodyString).to.contain(expected);
                         done();
+                    });
+                });
+                describe("Comments", function () {
+                    it("Skips lines beginning with #", function (done) {
+                        var parser = new Parser();
+                        parser.parse(request, function (error, options, body) {
+                            var bodyString = body.read().toString();
+                            expect(bodyString).to.not.contain("bumpygoose41");
+                            done();
+                        });
+                    });
+                    it("Skips lines beginning with //", function (done) {
+                        var parser = new Parser();
+                        parser.parse(request, function (error, options, body) {
+                            var bodyString = body.read().toString();
+                            expect(bodyString).to.not.contain("lazywind51");
+                            done();
+                        });
                     });
                 });
             });
