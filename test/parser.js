@@ -407,9 +407,51 @@ describe("Parser", function () {
         });
 
         describe("Forms", function () {
-            // it("Encodes body for form when @form option is true", function () { assert(false); });
-            // it("Adds Content-type header when @form option is true", function () { assert(false); });
-            // it("Returns error when body cannot be encoded as a form", function () { assert(false); });
+
+            var request = [
+                "POST http://mydomain.com/cats",
+                "Host: localhost",
+                "@form",
+                "",
+                "cat=molly",
+                " dog: bear",
+                "guineaPigs: Clyde and Claude"
+            ].join("\n");
+
+            it("Adds Content-type header when @form option is true", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.headers["content-type"].toLowerCase()).to.equal("application/x-www-form-urlencoded");
+                    done();
+                });
+            });
+
+            describe("Encodes form fields when @form option is true", function () {
+                it("Uses = separator", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString();
+                        expect(bodyString).to.contain("cat=molly");
+                        done();
+                    });
+                });
+                it("Uses : separator", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString();
+                        expect(bodyString).to.contain("dog=bear");
+                        done();
+                    });
+                });
+                it("Percent encodes values", function (done) {
+                    var parser = new Parser();
+                    parser.parse(request, function (error, options, body) {
+                        var bodyString = body.read().toString();
+                        expect(bodyString).to.contain("guineaPigs=Clyde%20and%20Claude");
+                        done();
+                    });
+                });
+            });
         });
 
         // TODO Does not override explicitly set headers
