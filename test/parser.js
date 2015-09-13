@@ -15,7 +15,7 @@ describe("Parser", function () {
         });
     });
 
-    describe("Request Line", function () {
+    describe("Request line", function () {
 
         var requests = [
             {
@@ -169,6 +169,102 @@ describe("Parser", function () {
                 });
             });
         });
+
+    }); // Request line
+
+    describe("Headers, query, and options", function () {
+
+        var request = [
+            "POST http://mydomain.com/cats",
+            "Host: localhost",
+            "Cache-control: no-cache",
+            "Content-type: application/json",
+            "# This is a comment",
+            "@flag",
+            "@followRedirects: true",
+            "@redirectStatusCodes: [301, 302]",
+            "@redirectLimit: 5",
+            "@stringOption: \"stringValue\"",
+            "@unquotedStringOption: stringValue",
+            "",
+            "{\"name\": \"molly\"}",
+            ""
+        ].join("\n");
+
+        it("Parses headers", function (done) {
+            var parser = new Parser();
+            parser.parse(request, function (error, options, body) {
+                var header, headers = {
+                    "Host": "localhost",
+                    "Cache-control": "no-cache",
+                    "Content-type": "application/json",
+                };
+                for (header in headers) {
+                    expect(options.headers[header]).to.equal(headers[header]);
+                }
+                done();
+            });
+        });
+
+        describe("Parses options", function () {
+
+            it("Parses flag options", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.flag).to.be.a("boolean");
+                    expect(options.flag).to.equal(true);
+                    done();
+                });
+            });
+
+            it("Parses boolean options", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.followRedirects).to.be.a("boolean");
+                    expect(options.followRedirects).to.equal(true);
+                    done();
+                });
+            });
+
+            it("Parses number options", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.redirectLimit).to.be.a("number");
+                    expect(options.redirectLimit).to.equal(5);
+                    done();
+                });
+            });
+
+            it("Parses array options", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.redirectStatusCodes).to.be.a("array");
+                    expect(options.redirectStatusCodes).to.have.length(2);
+                    expect(options.redirectStatusCodes).to.include(301);
+                    expect(options.redirectStatusCodes).to.include(302);
+                    done();
+                });
+            });
+
+            it("Parses string options with quotes", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.stringOption).to.be.a("string");
+                    expect(options.stringOption).to.equal("stringValue");
+                    done();
+                });
+            });
+
+            it("Parses string options without quotes", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    expect(options.unquotedStringOption).to.be.a("string");
+                    expect(options.unquotedStringOption).to.equal("stringValue");
+                    done();
+                });
+            });
+
+        }); // Options
 
     });
 
