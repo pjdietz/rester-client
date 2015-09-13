@@ -1,6 +1,8 @@
 /* jshint node: true, mocha: true */
 "use strict";
 
+var url = require("url");
+
 var assert = require("chai").assert,
     expect = require("chai").expect;
 
@@ -175,7 +177,11 @@ describe("Parser", function () {
     describe("Headers, query, and options", function () {
 
         var request = [
-            "POST http://mydomain.com/cats",
+            "POST http://mydomain.com/cats?cat=molly&dog=bear",
+            "?cat=oscar",
+            " & hamster : Fizzgig",
+            "?guineaPigs=Clyde and Claude",
+            "&query",
             "Host: localhost",
             "Cache-control: no-cache",
             "Content-type: application/json",
@@ -205,6 +211,73 @@ describe("Parser", function () {
                 done();
             });
         });
+
+        describe("Parses query", function () {
+
+            it("Does not replace parameters in request line not overriden later", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.dog).to.equal("bear");
+                    done();
+                });
+            });
+
+            it("Replaces parameters with overrides", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.cat).to.equal("oscar");
+                    done();
+                });
+            });
+
+            it("Parses parameters starting with ?", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.cat).to.equal("oscar");
+                    done();
+                });
+            });
+
+            it("Parses parameters starting with &", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.hamster).to.equal("Fizzgig");
+                    done();
+                });
+            });
+
+            it("Parses parameters separated with =", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.cat).to.equal("oscar");
+                    done();
+                });
+            });
+
+            it("Parses parameters separated with :", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.hamster).to.equal("Fizzgig");
+                    done();
+                });
+            });
+
+            it("Parses parameters with no values", function (done) {
+                var parser = new Parser();
+                parser.parse(request, function (error, options, body) {
+                    var query = url.parse(options.path, true).query;
+                    expect(query.query).to.equal("");
+                    done();
+                });
+            });
+
+        }); // Query
 
         describe("Parses options", function () {
 
