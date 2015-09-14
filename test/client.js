@@ -48,19 +48,19 @@ describe("Client", function () {
         };
 
     getOptions = function (options) {
-        var property, result = {};
+        var properties, property, result = {}, i, u;
         // Copy defaultOptions.
-        for (property in defaultOptions) {
-            if (defaultOptions.hasOwnProperty(property)) {
-                result[property] = defaultOptions[property];
-            }
+        properties = Object.keys(defaultOptions);
+        for (i = 0, u = properties.length; i < u; ++i) {
+            property = properties[i];
+            result[property] = defaultOptions[property];
         }
         // Override with options.
         if (options) {
-            for (property in options) {
-                if (options.hasOwnProperty(property)) {
-                    result[property] = options[property];
-                }
+            properties = Object.keys(options);
+            for (i = 0, u = properties.length; i < u; ++i) {
+                property = properties[i];
+                result[property] = options[property];
             }
         }
         return result;

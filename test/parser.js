@@ -8,9 +8,6 @@ var assert = require("chai").assert,
 
 var Parser = require("../lib/parser").Parser;
 
-// Does nothing, but provides coverage filtered for in.
-Object.prototype.notOwn = function () {};
-
 // -----------------------------------------------------------------------------
 
 describe("Parser", function () {
@@ -210,15 +207,16 @@ describe("Parser", function () {
         it("Parses headers", function (done) {
             var parser = new Parser();
             parser.parse(request, function (error, options, body) {
-                var header, headers = {
+                var expectedHeaders, header, headers, i, u;
+                expectedHeaders = {
                     "Host": "localhost",
                     "Cache-control": "no-cache",
                     "Content-type": "application/json",
                 };
-                for (header in headers) {
-                    if (headers.hasOwnProperty(header)) {
-                        expect(options.headers[header]).to.equal(headers[header]);
-                    }
+                headers = Object.keys(expectedHeaders);
+                for (i = 0, u = headers.length; i < u; ++i) {
+                    header = headers[i];
+                    expect(options.headers[header]).to.equal(expectedHeaders[header]);
                 }
                 done();
             });
@@ -425,10 +423,11 @@ describe("Parser", function () {
             it("Body is undefined when no body is present", function (done) {
                 var parser = new Parser();
                 parser.parse(request, function (error, options, body) {
-                    var countHeaders = 0, header;
-                    for (header in options.headers) {
-                        if (options.headers.hasOwnProperty(header) &&
-                                (header.toLowerCase() === "content-length")) {
+                    var countHeaders = 0, header, headers, i, u;
+                    headers = Object.keys(options.headers);
+                    for (i = 0, u = headers.length; i < u; ++i) {
+                        header = headers[i];
+                        if (header.toLowerCase() === "content-length") {
                             ++countHeaders;
                         }
                     }
@@ -566,10 +565,11 @@ describe("Parser", function () {
                 it("Body is undefined when no body is present", function (done) {
                     var parser = new Parser();
                     parser.parse(request, function (error, options, body) {
-                        var countHeaders = 0, header;
-                        for (header in options.headers) {
-                            if (options.headers.hasOwnProperty(header) &&
-                                    (header.toLowerCase() === "content-length")) {
+                        var countHeaders = 0, header, headers, i, u;
+                        headers = Object.keys(options.headers);
+                        for (i = 0, u = headers.length; i < u; ++i) {
+                            header = headers[i];
+                            if (header.toLowerCase() === "content-length") {
                                 ++countHeaders;
                             }
                         }
