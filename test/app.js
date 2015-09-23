@@ -1,46 +1,42 @@
 /* jshint node: true, mocha: true, -W030 */
 "use strict";
 
-var stream = require("stream");
+var fs = require("fs"),
+    http = require("http"),
+    os = require("os");
 
 var assert = require("chai").assert,
     expect = require("chai").expect,
     chai = require("chai"),
     sinon = require("sinon"),
-    sinonChai = require("sinon-chai");
+    sinonChai = require("sinon-chai"),
+    tmp = require("tmp");
 
 chai.should();
 chai.use(sinonChai);
 
 var App = require("../lib/app").App;
 
-function stringToStream(string) {
-    var s = new stream.Readable();
-    s.push(string);
-    s.push(null);
-    return s;
-}
-
-function createApp(stdin, argv) {
+function createApp(argv) {
     var app = new App();
-    app._input = stringToStream(stdin || "");
     app._argv = argv || [];
     return app;
 }
 
 describe("App", function () {
+
     it("Creates instance with default options", function () {
         var app = new App();
         assert.isDefined(app);
     });
 
-    describe("Initial input", function () {
+    describe("Reading request", function () {
 
-        it("Parses request from first argument.", function (done) {
+        it("Parses string request", function (done) {
             var app,
                 inputString = "GET /path HTTP/1.1\nHost: localhost",
                 parse;
-            app = createApp("", [inputString]);
+            app = createApp([inputString]);
             parse = sinon.spy(app._parser, "parse");
             app.on("end", function () {
                 parse.should.have.been.calledWith(inputString);
@@ -49,12 +45,15 @@ describe("App", function () {
             app.run();
         });
 
-        it("Parses request from stdin", function (done) {
+        it("Parses file request", function (done) {
             var app,
+                f,
                 inputString = "GET /path HTTP/1.1\nHost: localhost",
                 parse;
-            app = createApp(inputString, []);
+            f = tmp.fileSync();
+            app = createApp([f.name]);
             parse = sinon.spy(app._parser, "parse");
+            fs.writeFileSync(f.name, inputString);
             app.on("end", function () {
                 parse.should.have.been.calledWith(inputString);
                 done();
@@ -62,15 +61,10 @@ describe("App", function () {
             app.run();
         });
 
-        it("Stdin supercedes arguments", function (done) {
-            var app,
-                inputString1 = "GET /path HTTP/1.1\nHost: localhost",
-                inputString2 = "GET /other/path HTTP/1.1\nHost: localhost",
-                parse;
-            app = createApp(inputString1, [inputString2]);
-            parse = sinon.spy(app._parser, "parse");
-            app.on("end", function () {
-                parse.should.have.been.calledWith(inputString1);
+        it("Emits error when request is not a file", function (done) {
+            var app;
+            app = createApp([os.tmpdir()]);
+            app.on("error", function () {
                 done();
             });
             app.run();
@@ -85,5 +79,9 @@ describe("App", function () {
             app.run();
         });
     });
+
+    describe("Reading Options", function () {});
+
+    describe("Making Request", function () {});
 
 });

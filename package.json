@@ -24,7 +24,8 @@
         "jsdoc": "^3.3.2",
         "mocha": "^2.2.5",
         "sinon": "^1.16.1",
-        "sinon-chai": "^2.8.0"
+        "sinon-chai": "^2.8.0",
+        "tmp": "0.0.27"
     },
     "dependencies": {
         "yargs": "^3.25.0"
