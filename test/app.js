@@ -3,7 +3,8 @@
 
 var fs = require("fs"),
     http = require("http"),
-    os = require("os");
+    os = require("os"),
+    stream = require("stream");
 
 var assert = require("chai").assert,
     expect = require("chai").expect,
@@ -17,13 +18,40 @@ chai.use(sinonChai);
 
 var App = require("../lib/app").App;
 
-function createApp(argv) {
-    var app = new App();
-    app._argv = argv || [];
-    return app;
-}
+// -----------------------------------------------------------------------------
 
 describe("App", function () {
+
+    var port = 8764,
+        server,
+        passthrough,
+        requestString = [
+            "GET http://localhost:8764/path",
+            "Host: localhost"
+        ].join("\n");
+
+    function createApp(argv) {
+        passthrough = new stream.PassThrough();
+        return new App(argv, passthrough);
+    }
+
+    before(function () {
+        // Create and start an HTTPS server.
+        server = http.createServer();
+        server.on("request", function (request, response) {
+            // GET /: Hello, world!
+            response.statusCode = 200;
+            response.setHeader("Content-Type", "text/plain");
+            response.setHeader("X-custom-header", "custom-header-value");
+            response.write("Hello, world!");
+            response.end();
+        });
+        server.listen(port);
+    });
+
+    after(function () {
+        server = null;
+    });
 
     it("Creates instance with default options", function () {
         var app = new App();
@@ -34,12 +62,11 @@ describe("App", function () {
 
         it("Parses string request", function (done) {
             var app,
-                inputString = "GET /path HTTP/1.1\nHost: localhost",
                 parse;
-            app = createApp([inputString]);
+            app = createApp([requestString]);
             parse = sinon.spy(app._parser, "parse");
             app.on("end", function () {
-                parse.should.have.been.calledWith(inputString);
+                parse.should.have.been.calledWith(requestString);
                 done();
             });
             app.run();
@@ -48,14 +75,13 @@ describe("App", function () {
         it("Parses file request", function (done) {
             var app,
                 f,
-                inputString = "GET /path HTTP/1.1\nHost: localhost",
                 parse;
             f = tmp.fileSync();
             app = createApp([f.name]);
             parse = sinon.spy(app._parser, "parse");
-            fs.writeFileSync(f.name, inputString);
+            fs.writeFileSync(f.name, requestString);
             app.on("end", function () {
-                parse.should.have.been.calledWith(inputString);
+                parse.should.have.been.calledWith(requestString);
                 done();
             });
             app.run();
@@ -82,6 +108,76 @@ describe("App", function () {
 
     describe("Reading Options", function () {});
 
-    describe("Making Request", function () {});
+    describe("Making Request", function () {
 
+        it("Calls client request", function (done) {
+            var app,
+                request;
+            app = createApp([requestString]);
+            request = sinon.spy(app._client, "request");
+            app.on("end", function () {
+                request.should.have.been.called;
+                done();
+            });
+            app.run();
+
+        });
+
+        it("Outputs response", function (done) {
+            var app,
+                request;
+            app = createApp([requestString]);
+            app.on("end", function () {
+                var response = "";
+                passthrough.on("data", function (chunk) {
+                    response += chunk;
+                });
+                passthrough.on("end", function () {
+                    expect(response).to.contain("Hello, world!");
+                    done();
+                });
+            });
+            app.run();
+        });
+
+        it("Outputs response without status and headers", function (done) {
+            var app,
+                request;
+            app = createApp([requestString, "-H"]);
+            app.on("end", function () {
+                var response = "";
+                passthrough.on("data", function (chunk) {
+                    response += chunk;
+                });
+                passthrough.on("end", function () {
+                    expect(response).to.not.contain("HTTP/1.1 200 OK");
+                    expect(response).to.not.contain("X-custom-header: custom-header-value");
+                    expect(response).to.contain("Hello, world!");
+                    done();
+                });
+            });
+            app.run();
+        });
+        it("Outputs response with status and headers", function (done) {
+            var app,
+                request;
+            app = createApp([requestString, "-h"]);
+            app.on("end", function () {
+                var response = "";
+                passthrough.on("data", function (chunk) {
+                    response += chunk;
+                });
+                passthrough.on("end", function () {
+                    expect(response).to.contain("HTTP/1.1 200 OK");
+                    expect(response).to.contain("X-custom-header: custom-header-value");
+                    expect(response).to.contain("Hello, world!");
+                    done();
+                });
+            });
+            app.run();
+        });
+        it("Outputs final response without redirects", function () {});
+        it("Outputs final response with redirects", function () {});
+
+    });
 });
