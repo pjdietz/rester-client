@@ -211,5 +211,26 @@ describe("App", function () {
             });
             app.run();
         });
+
+        it("Pipes response to multiple commands", function (done) {
+            var app,
+                request;
+            // Grep the response for lines containing "Cat", then pipe that to
+            // wc to get the number of lines. The result should be 3.
+            app = createApp([requestString + "text", '--pipe=grep -e Cat | wc -l']);
+            app.on("end", function () {
+                var response = "";
+                passthrough.on("data", function (chunk) {
+                    response += chunk;
+                });
+                passthrough.on("end", function () {
+                    expect(response).to.contain("3");
+                    expect(response).to.not.contain("Cat: Molly");
+                    expect(response).to.not.contain("Dog: Bear");
+                    done();
+                });
+            });
+            app.run();
+        });
     });
 });
