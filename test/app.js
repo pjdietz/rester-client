@@ -217,7 +217,7 @@ describe("App", function () {
                 request;
             // Grep the response for lines containing "Cat", then pipe that to
             // wc to get the number of lines. The result should be 3.
-            app = createApp([requestString + "text", '--pipe=grep -e Cat | wc -l']);
+            app = createApp([requestString + "text", '--pipe=grep -e "Cat" | wc -l']);
             app.on("end", function () {
                 var response = "";
                 passthrough.on("data", function (chunk) {
