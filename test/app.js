@@ -166,7 +166,7 @@ describe("App", function () {
             passthrough.on("data", function (chunk) {
                 response += chunk;
             });
-            passthrough.on("end", function () {
+            app.on("end", function () {
                 expect(response).to.contain("Hello, world!");
                 done();
             });
@@ -178,7 +178,7 @@ describe("App", function () {
             passthrough.on("data", function (chunk) {
                 response += chunk;
             });
-            passthrough.on("end", function () {
+            app.on("end", function () {
                 expect(response).to.not.contain("HTTP/1.1 200 OK");
                 expect(response).to.not.contain("X-custom-header: custom-header-value");
                 expect(response).to.contain("Hello, world!");
@@ -192,7 +192,7 @@ describe("App", function () {
             passthrough.on("data", function (chunk) {
                 response += chunk;
             });
-            passthrough.on("end", function () {
+            app.on("end", function () {
                 expect(response).to.contain("HTTP/1.1 200 OK");
                 expect(response).to.contain("X-custom-header: custom-header-value");
                 expect(response).to.contain("Hello, world!");
@@ -237,7 +237,7 @@ describe("App", function () {
             passthrough.on("data", function (chunk) {
                 response += chunk;
             });
-            passthrough.on("end", function () {
+            app.on("end", function () {
                 expect(response).to.contain("Cat: Molly");
                 expect(response).to.not.contain("Dog: Bear");
                 done();
@@ -252,7 +252,7 @@ describe("App", function () {
             passthrough.on("data", function (chunk) {
                 response += chunk;
             });
-            passthrough.on("end", function () {
+            app.on("end", function () {
                 expect(response).to.contain("3");
                 expect(response).to.not.contain("Cat: Molly");
                 expect(response).to.not.contain("Dog: Bear");
