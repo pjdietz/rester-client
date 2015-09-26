@@ -16,6 +16,12 @@ var assert = require("chai").assert,
 chai.should();
 chai.use(sinonChai);
 
+if (typeof String.prototype.startsWith != "function") {
+  String.prototype.startsWith = function (str){
+    return this.slice(0, str.length) == str;
+  };
+}
+
 var App = require("../lib/app").App;
 
 // -----------------------------------------------------------------------------
@@ -31,6 +37,7 @@ describe("App", function () {
 
     function createApp(argv) {
         passthrough = new stream.PassThrough();
+        passthrough.setEncoding("utf8");
         return new App(argv, passthrough);
     }
 
@@ -54,6 +61,22 @@ describe("App", function () {
                 response.write("Cat: Rufus\n");
                 response.write("Dog: Bear\n");
                 response.end();
+            } else if (request.url.startsWith("/redirect/")) {
+                // Redirect the client from /redirect/{code}/{n} to
+                // /redirect/{code}/{n-1}; If n = 1, redirects to /
+                (function () {
+                    var parts, code, n, location = "/";
+                    parts = request.url.slice(1).split("/");
+                    code = parts[1];
+                    n = parseInt(parts[2], 10);
+                    if (n > 1) {
+                        location = "/redirect/" + code + "/" + (n - 1);
+                    }
+                    response.statusCode = code;
+                    response.setHeader("Location", location);
+                    response.write("Redirecting...\n\n");
+                    response.end();
+                })();
             } else {
                 response.statusCode = 404;
                 response.setHeader("Content-Type", "text/plain");
@@ -68,13 +91,16 @@ describe("App", function () {
         server = null;
     });
 
+    // -------------------------------------------------------------------------
+
     it("Creates instance with default options", function () {
         var app = new App();
         assert.isDefined(app);
     });
 
-    describe("Reading request", function () {
+    // -------------------------------------------------------------------------
 
+    describe("Reading request", function () {
         it("Parses string request", function (done) {
             var app,
                 parse;
@@ -86,7 +112,6 @@ describe("App", function () {
             });
             app.run();
         });
-
         it("Parses file request", function (done) {
             var app,
                 f,
@@ -101,7 +126,6 @@ describe("App", function () {
             });
             app.run();
         });
-
         it("Emits error when request is not a file", function (done) {
             var app;
             app = createApp([os.tmpdir()]);
@@ -110,7 +134,6 @@ describe("App", function () {
             });
             app.run();
         });
-
         it("Emits error when no request is present", function (done) {
             var app;
             app = createApp();
@@ -121,114 +144,119 @@ describe("App", function () {
         });
     });
 
+    // -------------------------------------------------------------------------
+
     describe("Reading Options", function () {});
 
-    describe("Making Request", function () {
+    // -------------------------------------------------------------------------
 
+    describe("Making Request", function () {
         it("Calls client request", function (done) {
-            var app,
-                request;
-            app = createApp([requestString]);
-            request = sinon.spy(app._client, "request");
+            var app = createApp([requestString]),
+                request = sinon.spy(app._client, "request");
             app.on("end", function () {
                 request.should.have.been.called;
                 done();
             });
             app.run();
-
         });
-
         it("Outputs response", function (done) {
-            var app,
-                request;
-            app = createApp([requestString]);
-            app.on("end", function () {
-                var response = "";
-                passthrough.on("data", function (chunk) {
-                    response += chunk;
-                });
-                passthrough.on("end", function () {
-                    expect(response).to.contain("Hello, world!");
-                    done();
-                });
+            var app = createApp([requestString]),
+                response = "";
+            passthrough.on("data", function (chunk) {
+                response += chunk;
+            });
+            passthrough.on("end", function () {
+                expect(response).to.contain("Hello, world!");
+                done();
             });
             app.run();
         });
-
         it("Outputs response without status and headers", function (done) {
-            var app,
-                request;
-            app = createApp([requestString, "-H"]);
-            app.on("end", function () {
-                var response = "";
-                passthrough.on("data", function (chunk) {
-                    response += chunk;
-                });
-                passthrough.on("end", function () {
-                    expect(response).to.not.contain("HTTP/1.1 200 OK");
-                    expect(response).to.not.contain("X-custom-header: custom-header-value");
-                    expect(response).to.contain("Hello, world!");
-                    done();
-                });
+            var app = createApp([requestString, "-H"]),
+                response = "";
+            passthrough.on("data", function (chunk) {
+                response += chunk;
+            });
+            passthrough.on("end", function () {
+                expect(response).to.not.contain("HTTP/1.1 200 OK");
+                expect(response).to.not.contain("X-custom-header: custom-header-value");
+                expect(response).to.contain("Hello, world!");
+                done();
             });
             app.run();
         });
         it("Outputs response with status and headers", function (done) {
-            var app,
-                request;
-            app = createApp([requestString, "-h"]);
-            app.on("end", function () {
-                var response = "";
-                passthrough.on("data", function (chunk) {
-                    response += chunk;
-                });
-                passthrough.on("end", function () {
-                    expect(response).to.contain("HTTP/1.1 200 OK");
-                    expect(response).to.contain("X-custom-header: custom-header-value");
-                    expect(response).to.contain("Hello, world!");
-                    done();
-                });
+            var app = createApp([requestString, "-h"]),
+                response = "";
+            passthrough.on("data", function (chunk) {
+                response += chunk;
+            });
+            passthrough.on("end", function () {
+                expect(response).to.contain("HTTP/1.1 200 OK");
+                expect(response).to.contain("X-custom-header: custom-header-value");
+                expect(response).to.contain("Hello, world!");
+                done();
             });
             app.run();
         });
-        it("Outputs final response without redirects", function () {});
+        it("Outputs final response with redirects", function (done) {
+            var app = createApp([requestString + "redirect/301/3", "-h", "-r"]),
+                responses = "";
+            passthrough.on("data", function (chunk) {
+                responses += chunk;
+            });
+            app.on("end", function () {
+                expect(responses).to.contain("Location: /redirect/301/2");
+                expect(responses).to.contain("Location: /redirect/301/1");
+                expect(responses).to.contain("Location: /");
+                expect(responses).to.contain("Hello, world!");
+                done();
+            });
+            app.run();
+        });
+        it("Outputs final response without redirects", function (done) {
+            var app = createApp([requestString + "redirect/301/3", "-h", "-R"]),
+                responses = "";
+            passthrough.on("data", function (chunk) {
+                responses += chunk;
+            });
+            app.on("end", function () {
+                expect(responses).to.not.contain("Location: /redirect/301/2");
+                expect(responses).to.not.contain("Location: /redirect/301/1");
+                expect(responses).to.not.contain("Location: /");
+                expect(responses).to.contain("Hello, world!");
+                done();
+            });
+            app.run();
+        });
         it("Outputs final response with redirects", function () {});
-
         it("Pipes response to one command", function (done) {
-            var app,
-                request;
-            app = createApp([requestString + "text", "--pipe=grep Cat"]);
-            app.on("end", function () {
-                var response = "";
-                passthrough.on("data", function (chunk) {
-                    response += chunk;
-                });
-                passthrough.on("end", function () {
-                    expect(response).to.contain("Cat: Molly");
-                    expect(response).to.not.contain("Dog: Bear");
-                    done();
-                });
+            var app = createApp([requestString + "text", "--pipe=grep -e Cat"]),
+                response = "";
+            passthrough.on("data", function (chunk) {
+                response += chunk;
+            });
+            passthrough.on("end", function () {
+                expect(response).to.contain("Cat: Molly");
+                expect(response).to.not.contain("Dog: Bear");
+                done();
             });
             app.run();
         });
-
         it("Pipes response to multiple commands", function (done) {
-            var app,
-                request;
+            var app = createApp([requestString + "text", '--pipe=grep -e "Cat" | wc -l']),
+                response = "";
             // Grep the response for lines containing "Cat", then pipe that to
             // wc to get the number of lines. The result should be 3.
-            app = createApp([requestString + "text", '--pipe=grep -e "Cat" | wc -l']);
-            app.on("end", function () {
-                var response = "";
-                passthrough.on("data", function (chunk) {
-                    response += chunk;
-                });
-                passthrough.on("end", function () {
-                    expect(response).to.contain("3");
-                    expect(response).to.not.contain("Cat: Molly");
-                    expect(response).to.not.contain("Dog: Bear");
-                    done();
-                });
+            passthrough.on("data", function (chunk) {
+                response += chunk;
+            });
+            passthrough.on("end", function () {
+                expect(response).to.contain("3");
+                expect(response).to.not.contain("Cat: Molly");
+                expect(response).to.not.contain("Dog: Bear");
+                done();
             });
             app.run();
         });
