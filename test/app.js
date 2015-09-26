@@ -26,8 +26,7 @@ describe("App", function () {
         server,
         passthrough,
         requestString = [
-            "GET http://localhost:8764/path",
-            "Host: localhost"
+            "GET http://localhost:8764/"
         ].join("\n");
 
     function createApp(argv) {
@@ -39,12 +38,28 @@ describe("App", function () {
         // Create and start an HTTPS server.
         server = http.createServer();
         server.on("request", function (request, response) {
-            // GET /: Hello, world!
-            response.statusCode = 200;
-            response.setHeader("Content-Type", "text/plain");
-            response.setHeader("X-custom-header", "custom-header-value");
-            response.write("Hello, world!");
-            response.end();
+            if (request.url === "/") {
+                // GET /: Hello, world!
+                response.statusCode = 200;
+                response.setHeader("Content-Type", "text/plain");
+                response.setHeader("X-custom-header", "custom-header-value");
+                response.write("Hello, world!");
+                response.end();
+            } else if (request.url === "/text") {
+                // GET /: Lines of text
+                response.statusCode = 200;
+                response.setHeader("Content-Type", "text/plain");
+                response.write("Cat: Molly\n");
+                response.write("Cat: Oscar\n");
+                response.write("Cat: Rufus\n");
+                response.write("Dog: Bear\n");
+                response.end();
+            } else {
+                response.statusCode = 404;
+                response.setHeader("Content-Type", "text/plain");
+                response.write("Not found");
+                response.end();
+            }
         });
         server.listen(port);
     });
@@ -179,5 +194,22 @@ describe("App", function () {
         it("Outputs final response without redirects", function () {});
         it("Outputs final response with redirects", function () {});
 
+        it("Pipes response to one command", function (done) {
+            var app,
+                request;
+            app = createApp([requestString + "text", "--pipe=grep Cat"]);
+            app.on("end", function () {
+                var response = "";
+                passthrough.on("data", function (chunk) {
+                    response += chunk;
+                });
+                passthrough.on("end", function () {
+                    expect(response).to.contain("Cat: Molly");
+                    expect(response).to.not.contain("Dog: Bear");
+                    done();
+                });
+            });
+            app.run();
+        });
     });
 });
