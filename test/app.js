@@ -136,7 +136,15 @@ describe("App", function () {
         });
         it("Emits error when no request is present", function (done) {
             var app;
-            app = createApp();
+            app = createApp([]);
+            app.on("error", function () {
+                done();
+            });
+            app.run();
+        });
+        it("Emits error with --help options", function (done) {
+            var app;
+            app = createApp([requestString, "--help"]);
             app.on("error", function () {
                 done();
             });
