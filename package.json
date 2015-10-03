@@ -1,5 +1,5 @@
 {
-    "name": "rester-core",
+    "name": "rester-client",
     "version": "0.1.0",
     "description": "Library for making HTTP requuests from a text file or string",
     "author": "PJ Dietz <pjdietz@gmail.com>",
