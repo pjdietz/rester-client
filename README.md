@@ -1,6 +1,6 @@
-# RESTer Core
+# RESTer
 
-This package includes the core functionality for RESTer, a library for making HTTP requuests from a text file or string.
+RESTer is a library for making HTTP requests from a text file or string.
 
 ## Tests
 
@@ -10,17 +10,16 @@ To run tests:
 npm test
 ```
 
-To run tests with coverages:
+Running tests will generate a code coverage report. To view:
 
 ```bash
-npm install -g istanbul
-istanbul cover _mocha -- -R spec
+npm test
 open coverage/lcov-report/index.html
 ```
 
 ## Documentation
 
-To generate documentation:
+To generate documentation and view:
 
 ```bash
 grunt jsdoc
