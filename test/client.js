@@ -204,6 +204,17 @@ describe("Client", function () {
             });
             client.request(options, stringToStream(expectedBody));
         });
+        it("Emits error when request has an error", function (done) {
+            var client = new Client(),
+                options = getOptions({
+                    host: "badhost",
+                    path: "/body"
+            });
+            client.on("error", function (error) {
+                done();
+            });
+            client.request(options);
+        });
     });
 
     // -------------------------------------------------------------------------
@@ -353,7 +364,7 @@ describe("Client", function () {
             // the code that indicates it has reached the redirect limit.
             client.on("error", function (error) {
                 redirects.should.equal(expected);
-                error.should.equal(Client.error.REDIRECT_LIMIT_REACHED);
+                error.message.should.equal("Redirect limit reached");
                 done();
             });
             client.request(options);
