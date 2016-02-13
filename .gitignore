@@ -1,8 +1,5 @@
 # Code coverage
 /coverage/
 
-# Documentation
-/doc/
-
 # Node
 /node_modules/

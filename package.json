@@ -1,33 +1,29 @@
 {
-    "name": "rester-client",
-    "version": "0.1.0",
-    "description": "Library for making HTTP requuests from a text file or string",
-    "author": "PJ Dietz <pjdietz@gmail.com>",
-    "main": "lib/index.js",
-    "scripts": {
-        "test": "bin/test.sh"
-    },
-    "bin": {
-        "rester": "bin/cliapp.js"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/pjdietz/rester-core.git"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "chai": "^3.2.0",
-        "grunt": "^0.4.5",
-        "grunt-jsdoc": "^0.6.7",
-        "ink-docstrap": "^0.5.2",
-        "istanbul": "^0.3.18",
-        "jsdoc": "^3.3.2",
-        "mocha": "^2.2.5",
-        "sinon": "^1.16.1",
-        "sinon-chai": "^2.8.0",
-        "tmp": "0.0.27"
-    },
-    "dependencies": {
-        "yargs": "^3.25.0"
-    }
+  "name": "rester-client",
+  "version": "0.1.0",
+  "description": "Library for making HTTP requuests from a text file or string",
+  "author": "PJ Dietz <pjdietz@gmail.com>",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "bin/test.sh"
+  },
+  "bin": {
+    "rester": "bin/cliapp.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pjdietz/rester-core.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "istanbul": "^0.3.18",
+    "mocha": "^2.2.5",
+    "sinon": "^1.16.1",
+    "sinon-chai": "^2.8.0",
+    "tmp": "0.0.27"
+  },
+  "dependencies": {
+    "yargs": "^3.25.0"
+  }
 }

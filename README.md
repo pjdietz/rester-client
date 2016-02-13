@@ -35,12 +35,3 @@ Running tests will generate a code coverage report. To view:
 ```bash
 open coverage/lcov-report/index.html
 ```
-
-## Documentation
-
-To generate documentation and view:
-
-```bash
-grunt jsdoc
-open doc/index.html
-```
