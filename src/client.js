@@ -1,11 +1,11 @@
-"use strict";
+'use strict';
 
-var EventEmitter = require("events").EventEmitter,
-    http = require("http"),
-    https = require("https"),
-    util = require("util");
+var EventEmitter = require('events').EventEmitter,
+    http = require('http'),
+    https = require('https'),
+    util = require('util');
 
-var Parser = require("./parser").Parser;
+var Parser = require('./parser').Parser;
 
 var Client;
 
@@ -37,7 +37,7 @@ Client.prototype.request = function (options, body) {
 };
 
 Client.prototype._createRequest = function (options, callback) {
-    if (options.protocol === "https" || options.protocol === "https:") {
+    if (options.protocol === 'https' || options.protocol === 'https:') {
         return https.request(options, callback);
     }
     return http.request(options, callback);
@@ -49,11 +49,11 @@ Client.prototype._startRequest = function (options, body, configuration) {
         willRedirect = false;
 
     // Normalize protocol to contain a trailing :
-    if (options.protocol && options.protocol.substr(options.protocol.length - 1) != ":") {
-        options.protocol += ":";
+    if (options.protocol && options.protocol.substr(options.protocol.length - 1) != ':') {
+        options.protocol += ':';
     }
 
-    client.emit("request", options);
+    client.emit('request', options);
 
     request = this._createRequest(options, function (response) {
         // Redirect.
@@ -62,7 +62,7 @@ Client.prototype._startRequest = function (options, body, configuration) {
                 if (code === response.statusCode) {
                     if (client.redirectCount >= client.redirectLimit) {
                         // Error: Redirect limit reached.
-                        client.emit("error", new Error("Redirect limit reached"));
+                        client.emit('error', new Error('Redirect limit reached'));
                     } else {
                         willRedirect = true;
                         client.redirectCount += 1;
@@ -71,10 +71,10 @@ Client.prototype._startRequest = function (options, body, configuration) {
                 }
             });
         }
-        client.emit("response", response, willRedirect);
+        client.emit('response', response, willRedirect);
     });
-    request.on("error", function (e) {
-        client.emit("error", e);
+    request.on('error', function (e) {
+        client.emit('error', e);
     });
 
     if (body) {
@@ -96,7 +96,7 @@ Client.prototype.redirect = function (response, options, configuration) {
         redirectOptions[property] = options[property];
     }
     // TODO Parse location for path and protocol.
-    redirectOptions.method = "GET";
+    redirectOptions.method = 'GET';
     redirectOptions.path = response.headers.location;
     this._startRequest(redirectOptions, undefined, configuration);
 };

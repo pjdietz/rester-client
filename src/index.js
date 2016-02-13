@@ -1,2 +1,2 @@
-exports.Client = require("./client").Client;
-exports.Parser = require("./parser").Parser;
+exports.Client = require('./client').Client;
+exports.Parser = require('./parser').Parser;

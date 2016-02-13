@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 
-var stream = require("stream"),
-    querystring = require("querystring"),
-    url = require("url");
+var stream = require('stream'),
+    querystring = require('querystring'),
+    url = require('url');
 
 var Parser;
 
@@ -10,8 +10,8 @@ var Parser;
  * @constructor
  */
 function Parser() {
-    this.eol = "\n";
-    this.encoding = "utf8";
+    this.eol = '\n';
+    this.encoding = 'utf8';
 }
 
 /**
@@ -47,7 +47,7 @@ Parser.prototype.parse = function (request) {
     while (lines.length > 0) {
         line = lines.pop().trim();
         if (!requestLine) {
-            if (line !== "") {
+            if (line !== '') {
                 // When we reach the first non-empty line, parse it as the
                 // request line and copy data from the result to the options.
                 result = this._parseRequestLine(line);
@@ -61,7 +61,7 @@ Parser.prototype.parse = function (request) {
                 continue;
             }
         } else {
-            if (line === "") {
+            if (line === '') {
                 // Body begins.
 
                 // Return the lines to the original order.
@@ -72,8 +72,8 @@ Parser.prototype.parse = function (request) {
                     // Encode the body as a form.
                     body = this._parseForm(lines);
                     if (body) {
-                        if (!hasHeader(options.headers, "content-type")) {
-                            options.headers["content-type"] = "application/x-www-form-urlencoded";
+                        if (!hasHeader(options.headers, 'content-type')) {
+                            options.headers['content-type'] = 'application/x-www-form-urlencoded';
                         }
                     }
                 } else {
@@ -87,8 +87,8 @@ Parser.prototype.parse = function (request) {
                 // If body is still set, convert it to a string and add a
                 // content-length header.
                 if (body) {
-                    if (!hasHeader(options.headers, "content-length")) {
-                        options.headers["content-length"] = "" + body.length;
+                    if (!hasHeader(options.headers, 'content-length')) {
+                        options.headers['content-length'] = '' + body.length;
                     }
                     body = stringToStream(body);
                 }
@@ -97,13 +97,13 @@ Parser.prototype.parse = function (request) {
                 // Header line.
                 result = this._parseHeaderLine(line);
                 switch (result.type) {
-                    case "header":
+                    case 'header':
                         options.headers[result.key] = result.value;
                         break;
-                    case "query":
+                    case 'query':
                         query[result.key] = result.value;
                         break;
-                    case "option":
+                    case 'option':
                         options[result.key] = result.value;
                         break;
                 }
@@ -123,21 +123,21 @@ Parser.prototype.parse = function (request) {
 
 Parser.prototype._parseRequestLine = function (line) {
     var properties = [
-            "protocol",
-            "auth",
-            "host",
-            "port",
-            "hostname",
-            "path"
+            'protocol',
+            'auth',
+            'host',
+            'port',
+            'hostname',
+            'path'
         ],
         results = {},
         uri,
         words;
 
-    words = line.split(" ");
+    words = line.split(' ');
     if (words.length === 1) {
         // For one-word lines, use the default method; the word as the URI.
-        results.method = "GET";
+        results.method = 'GET';
         uri = url.parse(words[0]);
     } else {
         // For two-or-more-word lines, the first word is the method; The
@@ -158,15 +158,15 @@ Parser.prototype._parseHeaderLine = function (line) {
     line = line.trim();
 
     // Skip comments
-    if (beginsWith(line, ["#", "//"])) {
+    if (beginsWith(line, ['#', '//'])) {
         return result;
     }
 
     switch (line.charAt(0)) {
-        case "@":
+        case '@':
             // Options
             line = line.slice(1).trim();
-            separator = earlistSubstring([":","="], line);
+            separator = earlistSubstring([':','='], line);
             if (separator) {
                 words = line.split(separator);
                 key = words[0].trim();
@@ -176,40 +176,40 @@ Parser.prototype._parseHeaderLine = function (line) {
                 } catch (e) {
                     // Do nothing. Retain unparsed value.
                 }
-                result.type = "option";
+                result.type = 'option';
                 result.key = key;
                 result.value = value;
             } else {
-                // No separator indicates a boolean true "flag" option.
-                result.type = "option";
+                // No separator indicates a boolean true 'flag' option.
+                result.type = 'option';
                 result.key = line;
                 result.value = true;
             }
             break;
-        case "?":
-        case "&":
+        case '?':
+        case '&':
             // Query parameter
             line = line.slice(1).trim();
-            separator = earlistSubstring([":","="], line);
+            separator = earlistSubstring([':','='], line);
             if (separator) {
                 words = line.split(separator);
                 key = words[0].trim();
                 value = words[1].trim();
-                result.type = "query";
+                result.type = 'query';
                 result.key = key;
                 result.value = value;
             } else {
-                result.type = "query";
+                result.type = 'query';
                 result.key = line;
-                result.value = "";
+                result.value = '';
             }
             break;
         default:
             // All other lines are headers
-            words = line.split(":");
+            words = line.split(':');
             key = words[0].trim();
             value = words[1].trim();
-            result.type = "header";
+            result.type = 'header';
             result.key = key;
             result.value = value;
     }
@@ -238,10 +238,10 @@ Parser.prototype._parseForm = function (lines) {
         if (multiline === undefined) {
             // This is the beginning of a new field.
             // Skip comment (lines beginning with #)
-            if (beginsWith(line.trim(), ["#", "//"])) {
+            if (beginsWith(line.trim(), ['#', '//'])) {
                 return;
             }
-            separator = earlistSubstring([":","="], line);
+            separator = earlistSubstring([':','='], line);
             if (separator) {
                 words = line.split(separator);
                 key = words[0].trim();
@@ -365,7 +365,7 @@ function mergeQuery(path, newQuery) {
         query[property] = newQuery[property];
     }
     queryString = querystring.stringify(query);
-    path = parsed.pathname + "?" + queryString;
+    path = parsed.pathname + '?' + queryString;
     return path;
 }
 

@@ -57,17 +57,7 @@ if [ "$coverage" = true ] ; then
     # All tests
     "$istanbul" cover "$_mocha" -- --recursive "$testRoot"
   fi
-
-  # # Ensure the symlink exists.
-  # if [ ! -d "$project"/coverage ] ; then
-  #   mkdir "$project"/coverage
-  # fi
-  # if [ ! -h "$project"/htdocs/coverage/js ] ; then
-  #   ln -s "$project"/coverage/lcov-report/ "$project"/htdocs/coverage/js
-  # fi
-  #
-  # echo "See /coverage/js/ through the Web server for the report."
-
+  
 else
 
   # Run without code coverage.
