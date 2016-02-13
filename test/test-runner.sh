@@ -7,7 +7,7 @@ modules="$project"/node_modules
 istanbul="$modules"/.bin/istanbul
 mocha="$modules"/.bin/mocha
 _mocha="$modules"/.bin/_mocha
-testRoot="$project/test"
+testRoot="$project/test/tests"
 
 usage()
 {

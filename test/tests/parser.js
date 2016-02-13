@@ -1,4 +1,3 @@
-/* jshint node: true, mocha: true, -W030 */
 "use strict";
 
 var url = require("url");
@@ -6,7 +5,7 @@ var url = require("url");
 var assert = require("chai").assert,
     expect = require("chai").expect;
 
-var Parser = require("../lib/parser").Parser;
+var Parser = require("../../src/parser").Parser;
 
 // -----------------------------------------------------------------------------
 

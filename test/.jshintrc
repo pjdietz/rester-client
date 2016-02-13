@@ -1,0 +1,6 @@
+{
+   "loopfunc": true,
+   "mocha": true,
+   "node": true,
+   "-W030": true
+}

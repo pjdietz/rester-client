@@ -1,4 +1,3 @@
-/* jshint node: true, mocha: true, expr: true */
 "use strict";
 
 var fs = require("fs"),
@@ -12,7 +11,7 @@ var chai = require("chai"),
     sinon = require("sinon"),
     sinonChai = require("sinon-chai");
 
-var Client = require("../lib/client").Client;
+var Client = require("../../src/client").Client;
 
 chai.should();
 chai.use(sinonChai);
@@ -70,8 +69,8 @@ describe("Client", function () {
 
         // Create and start an HTTPS server.
         httpsServer = https.createServer({
-            key: fs.readFileSync(path.resolve(__dirname, "https/key.pem")),
-            cert: fs.readFileSync(path.resolve(__dirname, "https/cert.pem"))
+            key: fs.readFileSync(path.resolve(__dirname, "../https/key.pem")),
+            cert: fs.readFileSync(path.resolve(__dirname, "../https/cert.pem"))
         });
         httpsServer.on("request", function (request, response) {
             // GET /: Hello, world!
