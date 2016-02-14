@@ -7,7 +7,6 @@ var fs = require('fs'),
     stream = require('stream');
 
 var chai = require('chai'),
-    assert = chai.assert,
     sinon = require('sinon'),
     sinonChai = require('sinon-chai');
 
@@ -135,19 +134,12 @@ describe('Client', function () {
 
     // -------------------------------------------------------------------------
 
-    describe('Construction', function () {
-        it('Creates instance with default options', function () {
-            var client = new Client();
-            assert(client !== undefined);
-        });
-    });
-
     describe('Making requests', function () {
         it('Calls end() on http(s).ClientRequest instance', function () {
             var client, createRequest, end;
             client = new Client(),
             // Stub getRequest to return a spy client.
-            createRequest = sinon.stub(client, '_createRequest', function (options, callback) {
+            createRequest = sinon.stub(client, 'createRequest', function (options, callback) {
                 var request = http.request(options, callback);
                 end = sinon.spy(request, 'end');
                 return request;
@@ -329,7 +321,10 @@ describe('Client', function () {
             client.request(options);
         });
         it('Does not follow redirects for disallowed status codes', function (done) {
-            var client = new Client(),
+            var client = new Client({
+                    followRedirects: true,
+                    redirectStatusCodes: [301]
+                }),
                 options = getOptions({'path': '/redirect/302/3'}),
                 redirects = 0,
                 expected = 0;
@@ -344,7 +339,6 @@ describe('Client', function () {
                 }
             });
             client.followRedirects = true;
-            client.redirectStatusCodes = [301];
             client.request(options);
         });
         it('Does not follow redirects after reaching redirect limit', function (done) {

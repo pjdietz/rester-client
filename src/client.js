@@ -5,76 +5,52 @@ var EventEmitter = require('events').EventEmitter,
     https = require('https'),
     util = require('util');
 
-var Parser = require('./parser').Parser;
-
 var Client;
 
 // -----------------------------------------------------------------------------
 
-/**
- * @constructor
- */
 function Client(options) {
-    options = options || {};
     EventEmitter.call(this);
-
-    this.parser = new Parser();
-    // Default values.
-    this.followRedirects = true;
-    this.redirectStatusCodes = [300, 301, 302, 303, 307];
-    this.redirectLimit = 10;
-    // TODO Override default values with options.
+    this.storeOptions(options);
+    this.redirectCount = 0;
 }
 
 util.inherits(Client, EventEmitter);
 
+Client.prototype.storeOptions = function (options) {
+    var mergedOptions = this.mergeOptionsWithDefaults(options);
+    this.followRedirects = mergedOptions.followRedirects;
+    this.redirectStatusCodes = mergedOptions.redirectStatusCodes;
+    this.redirectLimit = mergedOptions.redirectLimit;
+};
+
+Client.prototype.mergeOptionsWithDefaults = function (options) {
+    var defaults = {
+        followRedirects: true,
+        redirectLimit: 10,
+        redirectStatusCodes: [300, 301, 302, 303, 307]
+    };
+    return mergeObjects(defaults, options);
+};
+
 Client.prototype.request = function (options, body) {
     // TODO Ensure client it not already making a request.
-    // Reset the redirect count.
     this.redirectCount = 0;
     // Make the initial request.
-    this._startRequest(options, body);
+    this.startInitialRequest(options, body);
 };
 
-Client.prototype._createRequest = function (options, callback) {
-    if (options.protocol === 'https' || options.protocol === 'https:') {
-        return https.request(options, callback);
-    }
-    return http.request(options, callback);
-};
-
-Client.prototype._startRequest = function (options, body, configuration) {
-    var client = this,
+Client.prototype.startInitialRequest = function (options, body, configuration) {
+    var _this = this,
         request,
-        willRedirect = false;
+        responseCallback;
 
-    // Normalize protocol to contain a trailing :
-    if (options.protocol && options.protocol.substr(options.protocol.length - 1) != ':') {
-        options.protocol += ':';
-    }
-
-    client.emit('request', options);
-
-    request = this._createRequest(options, function (response) {
-        // Redirect.
-        if (client.followRedirects) {
-            client.redirectStatusCodes.forEach(function (code) {
-                if (code === response.statusCode) {
-                    if (client.redirectCount >= client.redirectLimit) {
-                        // Error: Redirect limit reached.
-                        client.emit('error', new Error('Redirect limit reached'));
-                    } else {
-                        willRedirect = true;
-                        client.redirectCount += 1;
-                        client.redirect(response, options, configuration);
-                    }
-                }
-            });
-        }
-        client.emit('response', response, willRedirect);
-    });
+    options.protocol = this.normalizeProtocol(options.protocol);
+    this.emit('request', options);
+    responseCallback = this.createResponseCallback(options, configuration);
+    request = this.createRequest(options, responseCallback);
     request.on('error', function (e) {
-        client.emit('error', e);
+        _this.emit('error', e);
     });
 
     if (body) {
@@ -82,6 +58,52 @@ Client.prototype._startRequest = function (options, body, configuration) {
     } else {
         request.end();
     }
+};
+
+Client.prototype.normalizeProtocol = function (protocol) {
+    if (protocol && !protocol.endsWith(':')) {
+        return protocol += ':';
+    }
+    return protocol;
+};
+
+Client.prototype.createRequest = function (options, callback) {
+    if (options.protocol === 'https:') {
+        return https.request(options, callback);
+    } else {
+        return http.request(options, callback);
+    }
+};
+
+Client.prototype.createResponseCallback = function (options, configuration) {
+    var _this = this,
+        willRedirect = false;
+    return function (response) {
+        // Redirect.
+        if (_this.shouldRedirect(response)) {
+            if (_this.redirectCount >= _this.redirectLimit) {
+                // Error: Redirect limit reached.
+                _this.emit('error', new Error('Redirect limit reached'));
+            } else {
+                willRedirect = true;
+                _this.redirectCount += 1;
+                _this.redirect(response, options, configuration);
+            }
+        }
+        _this.emit('response', response, willRedirect);
+    };
+};
+
+Client.prototype.shouldRedirect = function (response) {
+    if (this.followRedirects) {
+        for (var i = 0; i < this.redirectStatusCodes.length; ++i) {
+            if (response.statusCode === this.redirectStatusCodes[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return false;
 };
 
 Client.prototype.redirect = function (response, options, configuration) {
@@ -98,7 +120,22 @@ Client.prototype.redirect = function (response, options, configuration) {
     // TODO Parse location for path and protocol.
     redirectOptions.method = 'GET';
     redirectOptions.path = response.headers.location;
-    this._startRequest(redirectOptions, undefined, configuration);
+    this.startInitialRequest(redirectOptions, undefined, configuration);
 };
+
+// -----------------------------------------------------------------------------
+
+function mergeObjects() {
+    var merged = {},
+        sources = [].slice.call(arguments, 0);
+    sources.forEach(function (source) {
+        for (var prop in source) {
+            merged[prop] = source[prop];
+        }
+    });
+    return merged;
+}
+
+// -----------------------------------------------------------------------------
 
 exports.Client = Client;
