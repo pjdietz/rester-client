@@ -37,18 +37,18 @@ Client.prototype.request = function (options, body) {
     // TODO Ensure client it not already making a request.
     this.redirectCount = 0;
     // Make the initial request.
-    this.startInitialRequest(options, body);
+    this.startRequest(options, body);
 };
 
-Client.prototype.startInitialRequest = function (options, body, configuration) {
+Client.prototype.startRequest = function (options, body) {
     var _this = this,
-        request,
-        responseCallback;
+        request;
 
     options.protocol = this.normalizeProtocol(options.protocol);
     this.emit('request', options);
-    responseCallback = this.createResponseCallback(options, configuration);
-    request = this.createRequest(options, responseCallback);
+    request = this.createRequest(options, function (response) {
+        _this.onResponse(response, options);
+    });
     request.on('error', function (e) {
         _this.emit('error', e);
     });
@@ -75,38 +75,37 @@ Client.prototype.createRequest = function (options, callback) {
     }
 };
 
-Client.prototype.createResponseCallback = function (options, configuration) {
-    var _this = this,
-        willRedirect = false;
-    return function (response) {
-        // Redirect.
-        if (_this.shouldRedirect(response)) {
-            if (_this.redirectCount >= _this.redirectLimit) {
-                // Error: Redirect limit reached.
-                _this.emit('error', new Error('Redirect limit reached'));
-            } else {
-                willRedirect = true;
-                _this.redirectCount += 1;
-                _this.redirect(response, options, configuration);
-            }
-        }
-        _this.emit('response', response, willRedirect);
-    };
+Client.prototype.onResponse = function (response, options) {
+    if (this.shouldRedirect(response)) {
+        this.tryToRedirect(response, options);
+    } else {
+        this.emit('response', response, false);
+    }
 };
 
 Client.prototype.shouldRedirect = function (response) {
-    if (this.followRedirects) {
-        for (var i = 0; i < this.redirectStatusCodes.length; ++i) {
-            if (response.statusCode === this.redirectStatusCodes[i]) {
-                return true;
-            }
-        }
+    if (!this.followRedirects) {
         return false;
+    }
+    for (var i = 0; i < this.redirectStatusCodes.length; ++i) {
+        if (response.statusCode === this.redirectStatusCodes[i]) {
+            return true;
+        }
     }
     return false;
 };
 
-Client.prototype.redirect = function (response, options, configuration) {
+Client.prototype.tryToRedirect = function (response, options) {
+    if (this.redirectCount >= this.redirectLimit) {
+        this.emit('error', new Error('Redirect limit reached'));
+    } else {
+        this.emit('response', response, true);
+        this.redirectCount += 1;
+        this.redirect(response, options);
+    }
+};
+
+Client.prototype.redirect = function (response, options) {
     var properties,
         property,
         redirectOptions = {},
@@ -120,7 +119,7 @@ Client.prototype.redirect = function (response, options, configuration) {
     // TODO Parse location for path and protocol.
     redirectOptions.method = 'GET';
     redirectOptions.path = response.headers.location;
-    this.startInitialRequest(redirectOptions, undefined, configuration);
+    this.startRequest(redirectOptions, undefined);
 };
 
 // -----------------------------------------------------------------------------
