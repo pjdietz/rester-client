@@ -6,6 +6,8 @@ var EventEmitter = require('events').EventEmitter,
     url = require('url'),
     util = require('util');
 
+var RedirectError = require('./errors').RedirectError;
+
 function Transaction(requestOptions, requestBody, configuration) {
     EventEmitter.call(this);
     this.requestOptions = requestOptions;
@@ -61,19 +63,26 @@ Transaction.prototype.completeResponse = function (response, body) {
 
 Transaction.prototype.shouldRedirect = function (response) {
     var redirectCodes = this.configuration.redirectStatusCodes || [];
-    for (var i = 0; i < redirectCodes.length; ++i) {
-        if (response.statusCode === redirectCodes[i]) {
-            return true;
+    if (this.configuration.followRedirects) {
+        for (var i = 0; i < redirectCodes.length; ++i) {
+            if (response.statusCode === redirectCodes[i]) {
+                return true;
+            }
         }
     }
     return false;
 };
 
 Transaction.prototype.tryToRedirect = function (response) {
-    var resolved = this.getUrlFromCurrentLocation(response.headers.location),
+    var limit = this.configuration.redirectLimit,
+        resolved = this.getUrlFromCurrentLocation(response.headers.location),
         request = url.parse(resolved);
-    this.sendRequest(request);
     this.redirectCount += 1;
+    if (this.redirectCount > limit) {
+        this.emit('error', new RedirectError('Reached redirect limit of ' + limit));
+        return;
+    }
+    this.sendRequest(request);
     this.emit('redirect');
 };
 
