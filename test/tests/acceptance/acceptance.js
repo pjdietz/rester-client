@@ -9,41 +9,62 @@ var rester = require('../../../src');
 
 describe('Acceptance', function () {
 
-    context('When completing a successful GET request', function () {
-        var responseStatus,
-            responseText,
-            response;
-        beforeEach(function (done) {
-            var server = http.createServer();
-            server.on('request', function(request, response) {
-                if (request.url === '/hello') {
-                    // Hello, world!
-                    response.statusCode = 200;
-                    response.setHeader('Content-Type', 'text/plain');
-                    response.write('Hello, world!');
-                    response.end();
-                } else {
-                    response.statusCode = 404;
-                    response.setHeader('Content-Type', 'text/plain');
-                    response.write('Not found');
-                    response.end();
-                }
-            });
-            server.listen(8761);
+    var server;
 
-            var client = new rester.Client({});
-            var request = client.request('GET http://localhost:8761/hello');
-            request.on('response', function () {
-                response = this.response;
+    before(function () {
+        server = http.createServer();
+        server.on('request', function(request, response) {
+            if (request.url === '/hello') {
+                // Hello, world!
+                response.statusCode = 200;
+                response.setHeader('Content-Type', 'text/plain');
+                response.write('Hello, world!');
+                response.end();
+            } else if (request.url.startsWith('/redirect/')) {
+                // Redirect the client from /redirect/{code}/{n} to
+                // /redirect/{code}/{n-1}; If n = 1, redirects to /hello
+                (function () {
+                    var parts, code, n, location = '/hello';
+                    parts = request.url.slice(1).split('/');
+                    code = parts[1];
+                    n = parseInt(parts[2], 10);
+                    if (n > 1) {
+                        location = '/redirect/' + code + '/' + (n - 1);
+                    }
+                    response.statusCode = code;
+                    response.setHeader('Location', location);
+                    response.end();
+                })();
+            } else {
+                response.statusCode = 404;
+                response.setHeader('Content-Type', 'text/plain');
+                response.write('Not found');
+                response.end();
+            }
+        });
+        server.listen(8761);
+    });
+
+    after(function () {
+        server.close();
+    });
+
+    context('When completing a successful GET request', function () {
+        var response;
+        beforeEach(function (done) {
+            var client = new rester.Client({}),
+                transaction = client.request('GET http://localhost:8761/hello');
+            transaction.on('end', function () {
+                response = this.getResponse();
                 done();
             });
-            request.send();
+            transaction.send();
         });
         it('Recieves status code', function () {
-            expect(response.toString()).to.match(/^HTTP\/1\.1 200/);
+            expect(response).to.match(/^HTTP\/1\.1 200/);
         });
         it('Recieves response body', function () {
-            expect(response.toString()).to.match(/Hello, world!$/);
+            expect(response).to.match(/Hello, world!$/);
         });
     });
 

@@ -1,38 +1,19 @@
 'use strict';
 
+var Parser = require('./parser'),
+    Transaction = require('./Transaction');
+
 function Client() {
-
+    this.parser = new Parser();
 }
 
-Client.prototype.request = function () {
-    return new Request();
-};
-
-// -----------------------------------------------------------------------------
-
-function Request() {
-    this.response = new Response();
-}
-
-Request.prototype.on = function (event, callback) {
-    this.onResponse = callback;
-};
-
-Request.prototype.send = function () {
-    this.onResponse.call(this);
-};
-
-// -----------------------------------------------------------------------------
-
-function Response() {
-
-}
-
-Response.prototype.toString = function () {
-    return 'HTTP/1.1 200 OK' +
-        'Content-type: text/plain' +
-        '' +
-        'Hello, world!';
+Client.prototype.request = function (requestString) {
+    var opts = this.parser.parse(requestString);
+    return new Transaction(
+        opts.options,
+        opts.body,
+        opts.configuration
+    );
 };
 
 // -----------------------------------------------------------------------------

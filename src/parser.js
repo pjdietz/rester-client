@@ -382,4 +382,4 @@ function stringToStream(string) {
     return s;
 }
 
-exports.Parser = Parser;
+module.exports = Parser;

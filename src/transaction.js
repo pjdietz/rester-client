@@ -52,8 +52,8 @@ Transaction.prototype.onResponse = function (response) {
 };
 
 Transaction.prototype.completeResponse = function (response, body) {
-    this.emit('response');
     this.responses.push(this.responseFormatter.format(response, body));
+    this.emit('response');
     if (this.shouldRedirect(response)) {
         this.tryToRedirect(response);
     } else {
