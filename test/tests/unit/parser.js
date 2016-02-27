@@ -5,7 +5,7 @@ var url = require('url');
 var assert = require('chai').assert,
     expect = require('chai').expect;
 
-var Parser = require('../../src/parser').Parser;
+var Parser = require('../../../src/parser');
 
 // -----------------------------------------------------------------------------
 
