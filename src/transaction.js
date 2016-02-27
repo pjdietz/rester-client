@@ -19,7 +19,7 @@ function Transaction(requestOptions, requestBody, configuration) {
     this.responseFormatter = new ResponseFormatter();
     // Things that could move into a state.
     this.redirectCount = 0;
-    this.currentRequestOptions = null;
+    this.currentLocation = null;
 }
 
 util.inherits(Transaction, EventEmitter);
@@ -31,11 +31,11 @@ Transaction.prototype.send = function () {
 
 Transaction.prototype.sendRequest = function (requestOptions, body) {
     var _this = this;
-    this.currentRequestOptions = requestOptions;
-    this.requests.push(this.requestFormatter.format(requestOptions, body));
+    this.currentLocation = url.format(requestOptions);
     var request = http.request(requestOptions, function (response) {
         _this.onResponse(response);
     });
+    this.requests.push(this.requestFormatter.format(request, body));
     request.end();
 };
 
@@ -48,6 +48,7 @@ Transaction.prototype.onResponse = function (response) {
     });
     response.on('end', function () {
         _this.completeResponse(response, body);
+        response.removeAllListeners();
     });
 };
 
@@ -87,8 +88,7 @@ Transaction.prototype.tryToRedirect = function (response) {
 };
 
 Transaction.prototype.getUrlFromCurrentLocation = function (uri) {
-    var currentUrl = url.format(this.currentRequestOptions);
-    return url.resolve(currentUrl, uri);
+    return url.resolve(this.currentLocation, uri);
 };
 
 Transaction.prototype.getRequest = function () {
@@ -101,26 +101,66 @@ Transaction.prototype.getResponse = function () {
 
 // -----------------------------------------------------------------------------
 
-function MessageFormatter() {
+function MessageFormatter() {}
 
-}
-
-function RequestFormatter() {
-
-}
-
-RequestFormatter.prototype.format = function (request, body) {
-    return 'GET /hello HTTP/1.1';
+MessageFormatter.prototype.format = function (message, body) {
+    var formatted = this.startLine(message);
+    formatted += this.headerLines(message);
+    if (body) {
+        formatted += '\r\n';
+        formatted += body;
+    }
+    return formatted;
 };
 
-function ResponseFormatter() {
-
+function RequestFormatter() {
+    MessageFormatter.call(this);
 }
 
-ResponseFormatter.prototype.format = function (response, body) {
-    return 'HTTP/1.1 200 OK\n' +
-        '\n' +
-        'Hello, world!';
+// -----------------------------------------------------------------------------
+
+util.inherits(RequestFormatter, MessageFormatter);
+
+RequestFormatter.prototype.startLine = function (request) {
+    var method = request.method,
+        path = request.path,
+        version = 'HTTP/1.1';
+    return method + ' ' + path + ' ' + version + '\r\n';
+};
+
+RequestFormatter.prototype.headerLines = function (request) {
+    var headerLines = '',
+        keys = Object.keys(request._headerNames);
+    keys.forEach(function (key) {
+        var name = request._headerNames[key],
+            value = request._headers[key];
+        headerLines += name + ': ' + value + '\r\n';
+    });
+    return headerLines;
+};
+
+// -----------------------------------------------------------------------------
+
+function ResponseFormatter() {
+    MessageFormatter.call(this);
+}
+
+util.inherits(ResponseFormatter, MessageFormatter);
+
+ResponseFormatter.prototype.startLine = function (response) {
+    var version = 'HTTP/1.1',
+        statusCode = response.statusCode,
+        reasonPhrase = response.statusMessage;
+    return version + ' ' + statusCode + ' ' + reasonPhrase + '\r\n';
+};
+
+ResponseFormatter.prototype.headerLines = function (response) {
+    var headerLines = '';
+    for (var i = 0; i < response.rawHeaders.length; ++i) {
+        headerLines += response.rawHeaders[i];
+        headerLines += (i % 2 === 0 ? ': ' : '\r\n');
+    }
+    return headerLines;
 };
 
 // -----------------------------------------------------------------------------
