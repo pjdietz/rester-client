@@ -3,6 +3,7 @@
 var EventEmitter = require('events').EventEmitter,
     http = require('http'),
     https = require('https'),
+    url = require('url'),
     util = require('util');
 
 function Transaction(requestOptions, requestBody, configuration) {
@@ -69,22 +70,16 @@ Transaction.prototype.shouldRedirect = function (response) {
 };
 
 Transaction.prototype.tryToRedirect = function (response) {
-
-    // TODO Need to parse the location. If it is relative, we need to reference
-    // the request used to get this response.
-
-    var previous = this.currentRequestOptions;
-
-    var request = {
-        method: 'GET',
-        hostname: previous.hostname,
-        port: previous.port,
-        path: response.headers.location
-    };
-
+    var resolved = this.getUrlFromCurrentLocation(response.headers.location),
+        request = url.parse(resolved);
     this.sendRequest(request);
     this.redirectCount += 1;
     this.emit('redirect');
+};
+
+Transaction.prototype.getUrlFromCurrentLocation = function (uri) {
+    var currentUrl = url.format(this.currentRequestOptions);
+    return url.resolve(currentUrl, uri);
 };
 
 Transaction.prototype.getRequest = function () {
