@@ -1,126 +1,56 @@
 'use strict';
 
-var stream = require('stream'),
-    querystring = require('querystring'),
+var querystring = require('querystring'),
     url = require('url');
 
-var Parser;
+// -----------------------------------------------------------------------------
 
-/**
- * @constructor
- */
-function Parser() {
-    this.eol = '\n';
-    this.encoding = 'utf8';
+function Parser(configuration) {
+    this.setConfiguration(configuration);
+    this.query = null;
+    this.result = null;
 }
 
-/**
- * Synchronously parse a string representing an HTTP request.
- *
- * The method returns an object with containing these keys:
- *   - `.options`: An object of options for use with a `Client` or `http.request`
- *   - `.body`: A readable stream containing the request body.
- *
- * @param {string} request HTTP request
- * @return {object}
- */
 Parser.prototype.parse = function (request) {
-    var options = {
+    this.query = {};
+    this.initializeResult();
+    this.parseRequest(request);
+    return this.result;
+};
+
+Parser.prototype.initializeResult = function () {
+    this.result = {
+        options: {
             headers: {}
         },
-        body,
-        // Indicates the parse has not yet parsed the request line.
-        requestLine = false,
-        lines,
-        line,
-        properties,
-        property,
-        query = {},
-        result,
-        i, u;
-
-    // Split the string into an array of lines and reverse so that we can pop
-    // lines off the stack and read them in order.
-    lines = request.split(this.eol);
-    lines.reverse();
-
-    while (lines.length > 0) {
-        line = lines.pop().trim();
-        if (!requestLine) {
-            if (line !== '') {
-                // When we reach the first non-empty line, parse it as the
-                // request line and copy data from the result to the options.
-                result = this._parseRequestLine(line);
-                properties = Object.keys(result);
-                for (i = 0, u = properties.length; i < u; ++i) {
-                    property = properties[i];
-                    options[property] = result[property];
-                }
-                // Indicate that the request line has been parsed and continue.
-                requestLine = true;
-                continue;
-            }
-        } else {
-            if (line === '') {
-                // Body begins.
-
-                // Return the lines to the original order.
-                lines.reverse();
-
-                // Encoded it as a form, if needed; or rebuild it as a string.
-                if (options.form) {
-                    // Encode the body as a form.
-                    body = this._parseForm(lines);
-                    if (body) {
-                        if (!hasHeader(options.headers, 'content-type')) {
-                            options.headers['content-type'] = 'application/x-www-form-urlencoded';
-                        }
-                    }
-                } else {
-                    // Re-join the lines into a single string.
-                    body = lines.join(this.eol);
-                }
-                // Unset body if it's contain no non-whitespace characters.
-                if (body && body.trim().length === 0) {
-                    body = undefined;
-                }
-                // If body is still set, convert it to a string and add a
-                // content-length header.
-                if (body) {
-                    if (!hasHeader(options.headers, 'content-length')) {
-                        options.headers['content-length'] = '' + body.length;
-                    }
-                }
-                break;
-            } else {
-                // Header line.
-                result = this._parseHeaderLine(line);
-                switch (result.type) {
-                    case 'header':
-                        options.headers[result.key] = result.value;
-                        break;
-                    case 'query':
-                        query[result.key] = result.value;
-                        break;
-                    case 'option':
-                        options[result.key] = result.value;
-                        break;
-                }
-            }
-        }
-    }
-
-    // Merge the parsed query parameters onto the request path.
-    options.path = mergeQuery(options.path, query);
-
-    return {
-        error: undefined,
-        options: options,
-        body: body
+        body: {},
+        configuration: {}
     };
 };
 
-Parser.prototype._parseRequestLine = function (line) {
+Parser.prototype.parseRequest = function (request) {
+    // Split the string into an array of lines and reverse so that we can pop
+    // lines off the stack and read them in order.
+    var lines = request.split(this.configuration.eol);
+    var line;
+    lines.reverse();
+    while (lines.length > 0) {
+        line = lines.pop().trim();
+        this.parseLine(line);
+    }
+    // Merge the parsed query parameters onto the request path.
+    this.result.options.path = mergeQuery(this.result.options.path, this.query);
+};
+
+Parser.prototype.parseLine = function (line) {
+    if (!this.parsedRequestLine()) {
+        this.parseRequestLine(line);
+    } else {
+        this.parseHeaderLine(line);
+    }
+};
+
+Parser.prototype.parseRequestLine = function (line) {
     var properties = [
             'protocol',
             'auth',
@@ -128,158 +58,101 @@ Parser.prototype._parseRequestLine = function (line) {
             'port',
             'hostname',
             'path'
-        ],
-        results = {},
-        uri,
-        words;
+        ];
+    var words = line.split(' ');
+    var uri;
 
-    words = line.split(' ');
     if (words.length === 1) {
         // For one-word lines, use the default method; the word as the URI.
-        results.method = 'GET';
+        this.result.options.method = 'GET';
         uri = url.parse(words[0]);
     } else {
         // For two-or-more-word lines, the first word is the method; The
         // second is the URI; others are ignored.
-        results.method = words[0];
+        this.result.options.method = words[0];
         uri = url.parse(words[1]);
     }
     // Copy specific properties from the parsed URI to the results.
-    properties.forEach(function (property) {
-        results[property] = uri[property];
-    });
-    return results;
+    for (var i = 0; i < properties.length; ++i) {
+        var property = properties[i];
+        this.result.options[property] = uri[property];
+    }
 };
 
-Parser.prototype._parseHeaderLine = function (line) {
-    var words, key, value, separator, result;
-    result = {};
-    line = line.trim();
-
-    // Skip comments
-    if (beginsWith(line, ['#', '//'])) {
-        return result;
-    }
-
-    switch (line.charAt(0)) {
-        case '@':
-            // Options
-            line = line.slice(1).trim();
-            separator = earlistSubstring([':','='], line);
-            if (separator) {
-                words = line.split(separator);
-                key = words[0].trim();
-                value = words[1].trim();
-                try {
-                    value = JSON.parse(value);
-                } catch (e) {
-                    // Do nothing. Retain unparsed value.
-                }
-                result.type = 'option';
-                result.key = key;
-                result.value = value;
-            } else {
-                // No separator indicates a boolean true 'flag' option.
-                result.type = 'option';
-                result.key = line;
-                result.value = true;
-            }
-            break;
-        case '?':
-        case '&':
-            // Query parameter
-            line = line.slice(1).trim();
-            separator = earlistSubstring([':','='], line);
-            if (separator) {
-                words = line.split(separator);
-                key = words[0].trim();
-                value = words[1].trim();
-                result.type = 'query';
-                result.key = key;
-                result.value = value;
-            } else {
-                result.type = 'query';
-                result.key = line;
-                result.value = '';
-            }
-            break;
-        default:
-            // All other lines are headers
-            words = line.split(':');
-            key = words[0].trim();
-            value = words[1].trim();
-            result.type = 'header';
-            result.key = key;
-            result.value = value;
-    }
-    return result;
-};
-
-/**
- * Parse an array of strings containing an unencoded form body in reverse order
- * and return a string containing the encoded form.
- *
- * @param  {string[]} body Reverse-order array of lines of the body
- * @return {string} Encoded form
- * @ignore
- */
-Parser.prototype._parseForm = function (lines) {
-
-    var eol = this.eol,
-        fields = {},
-        form,
-        key,
-        multiline;
-
-    lines.forEach(function (line) {
-        var pos, separator, value, words;
-
-        if (multiline === undefined) {
-            // This is the beginning of a new field.
-            // Skip comment (lines beginning with #)
-            if (beginsWith(line.trim(), ['#', '//'])) {
-                return;
-            }
-            separator = earlistSubstring([':','='], line);
-            if (separator) {
-                words = line.split(separator);
-                key = words[0].trim();
-                value = words[1];
-                // Check if this value begins a multiline field.
-                pos = value.indexOf('"""');
-                if (pos !== -1) {
-                    value = value.slice(pos + 3);
-                    // Check if this value also ends the tripple quoted value.
-                    pos = value.indexOf('"""');
-                    if (pos !== -1) {
-                        // The entire quotes value is on one line.
-                        value = value.slice(0, pos);
-                    } else {
-                        // Start multiline.
-                        multiline = value;
-                        return;
-                    }
-                }
-                fields[key] = value.trim();
-            }
-        } else {
-            // This is the continuation of a multiline field.
-            // Check if this line ends the tripple quoted value.
-            pos = line.indexOf('"""');
-            if (pos !== -1) {
-                fields[key] = multiline + eol + line.slice(0, pos);
-                multiline = undefined;
-            }
-            multiline += eol + line;
+Parser.prototype.parseHeaderLine = function (line) {
+    if (this.isQueryLine(line)) {
+        this.parseQueryLine(line);
+    } else if (this.isOptionLine(line)) {
+        this.parseOptionLine(line);
+    } else {
+        var words = line.split(':');
+        if (words.length > 1) {
+            var key = words[0].trim();
+            var value = words[1].trim();
+            this.result.options.headers[key] = value;
         }
-    });
-
-    form = querystring.stringify(fields);
-    if (form) {
-        return form;
     }
-    return;
 };
+
+Parser.prototype.isQueryLine = function (line) {
+    return beginsWith(line, ['?', '&']);
+};
+
+Parser.prototype.parseQueryLine = function (line) {
+    // Query parameter
+    line = line.slice(1).trim();
+    var separator = earlistSubstring([':','='], line);
+    if (separator) {
+        var words = line.split(separator);
+        var key = words[0].trim();
+        var value = words[1].trim();
+        this.query[key] = value;
+    } else {
+        this.query[line] = '';
+    }
+};
+
+Parser.prototype.isOptionLine = function (line) {
+    return line.charAt(0) == '@';
+};
+
+Parser.prototype.parseOptionLine = function (line) {
+    // Query parameter
+    line = line.slice(1).trim();
+    var separator = earlistSubstring([':','='], line);
+    if (separator) {
+        var words = line.split(separator);
+        var key = words[0].trim();
+        var value = words[1].trim();
+        try {
+            value = JSON.parse(value);
+        } catch (e) {
+            // Do nothing. Retain unparsed value.
+        }
+        this.result.configuration[key] = value;
+    } else {
+        this.result.configuration[line] = true;
+    }
+};
+
+Parser.prototype.setConfiguration = function (configuration) {
+    var userConfiguration = configuration || {};
+    this.configuration = {
+        ecoding: 'utf8',
+        eol: '\r\n'
+    };
+    for (var property in this.configuration) {
+        if (userConfiguration[property]) {
+            this.confguration[property] = userConfiguration[property];
+        }
+    }
+};
+
+Parser.prototype.parsedRequestLine = function () {
+    return !!this.result.options.method;
+};
+
+// -----------------------------------------------------------------------------
 
 /**
  * Tests if a string begins with any of the string in the array of needles.
@@ -324,23 +197,6 @@ function earlistSubstring(needles, haystack) {
 }
 
 /**
- * Case-insensitively test if a collection of headers contains a given header.
- *
- * @param {Object} headers Collection of headers
- * @param {string} header Header name to check for
- * @return {Boolean} The collection contains some varient of the header.
- */
-function hasHeader(headers, header) {
-    var name;
-    for (name in headers) {
-        if (name.toLowerCase() === header) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
  * Merge additional query parameters onto an existing request path and return
  * the combined path + query
  *
@@ -368,17 +224,6 @@ function mergeQuery(path, newQuery) {
     return path;
 }
 
-/**
- * Return a readable stream given a string.
- *
- * @param  {string} string The string contents for the stream
- * @return {stream.Readable} Readable stream containing the string
- */
-function stringToStream(string) {
-    var s = new stream.Readable();
-    s.push(string);
-    s.push(null);
-    return s;
-}
+// -----------------------------------------------------------------------------
 
 module.exports = Parser;
