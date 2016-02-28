@@ -27,6 +27,13 @@ function createServer(port) {
                 response.setHeader('Location', location);
                 response.end();
             })();
+        } else if (request.url === '/echo') {
+            // Response body will contain Request body
+            response.statusCode = 201;
+            if (request.headers['content-type']) {
+                response.setHeader('Content-Type', request.headers['content-type']);                
+            }
+            request.pipe(response);
         } else {
             response.statusCode = 404;
             response.setHeader('Content-Type', 'text/plain');

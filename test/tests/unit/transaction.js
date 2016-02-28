@@ -1,6 +1,7 @@
 'use strict';
 
-var http = require('http');
+var http = require('http'),
+    stream = require('stream');
 
 var chai = require('chai'),
     expect = chai.expect,
@@ -252,7 +253,7 @@ describe('Transaction', function () {
         });
     });
     describe('Messages', function () {
-        context('After a transaction completes', function () {
+        context('When a transaction completes', function () {
             beforeEach(function (done) {
                 transaction = new Transaction({
                     protocol: 'http:',
@@ -284,7 +285,7 @@ describe('Transaction', function () {
                 });
             });
         });
-        context('When redirects succefully', function () {
+        context('When redirects successfully', function () {
             beforeEach(function (done) {
                 transaction = new Transaction({
                     protocol: 'http:',
@@ -338,5 +339,32 @@ describe('Transaction', function () {
                 });
             });
         });
+        context('When request contains a body', function () {
+            var body;
+            beforeEach(function (done) {
+                body = 'This is the request body';
+                transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: port,
+                    method: 'POST',
+                    path: '/echo'
+                }, stringToStream(body), {});
+                transaction.on('end', done);
+                transaction.send();
+            });
+            it('Sends request body to server', function () {
+                expect(transaction.getResponse()).to.contain(body);
+            });
+        });
     });
 });
+
+// -------------------------------------------------------------------------
+
+function stringToStream(string) {
+    var s = new stream.Readable();
+    s.push(string);
+    s.push(null);
+    return s;
+}

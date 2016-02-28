@@ -36,7 +36,11 @@ Transaction.prototype.sendRequest = function (requestOptions, body) {
         _this.onResponse(response);
     });
     this.requests.push(this.requestFormatter.format(request, body));
-    request.end();
+    if (body) {
+        body.pipe(request);
+    } else {
+        request.end();
+    }
 };
 
 Transaction.prototype.onResponse = function (response) {
