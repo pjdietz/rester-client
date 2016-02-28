@@ -53,7 +53,7 @@ describe('Acceptance', function () {
         });
     });
 
-    it('When sending request with body', function () {
+    describe('When sending request with body', function () {
         var body = 'Message payload';
         var transaction;
         beforeEach(function (done) {
@@ -72,4 +72,5 @@ describe('Acceptance', function () {
             expect(transaction.getResponse()).to.contain(body);
         });
     });
+
 });
