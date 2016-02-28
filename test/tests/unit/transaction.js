@@ -349,7 +349,7 @@ describe('Transaction', function () {
                     port: port,
                     method: 'POST',
                     path: '/echo'
-                }, stringToStream(body), {});
+                }, body, {});
                 transaction.on('end', done);
                 transaction.send();
             });

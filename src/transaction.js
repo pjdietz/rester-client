@@ -3,6 +3,7 @@
 var EventEmitter = require('events').EventEmitter,
     http = require('http'),
     https = require('https'),
+    stream = require('stream'),
     url = require('url'),
     util = require('util');
 
@@ -37,7 +38,8 @@ Transaction.prototype.sendRequest = function (requestOptions, body) {
     });
     this.requests.push(this.requestFormatter.format(request, body));
     if (body) {
-        body.pipe(request);
+        var bodyStream = stringToStream(body);
+        bodyStream.pipe(request);
     } else {
         request.end();
     }
@@ -166,6 +168,15 @@ ResponseFormatter.prototype.headerLines = function (response) {
     }
     return headerLines;
 };
+
+// -----------------------------------------------------------------------------
+
+function stringToStream(string) {
+    var s = new stream.Readable();
+    s.push(string);
+    s.push(null);
+    return s;
+}
 
 // -----------------------------------------------------------------------------
 

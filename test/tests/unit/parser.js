@@ -334,11 +334,10 @@ describe('Parser', function () {
                 '{"name": "molly"}'
             ].join('\n');
 
-            it('Provides body as stream', function () {
+            it('Provides body as string', function () {
                 var parser = new Parser(),
-                    result = parser.parse(request),
-                    bodyString = result.body.read().toString();
-                expect(bodyString).to.equal('{"name": "molly"}');
+                    result = parser.parse(request);
+                expect(result.body).to.equal('{"name": "molly"}');
             });
             it('Adds content-length header', function () {
                 var parser = new Parser(),
@@ -415,32 +414,27 @@ describe('Parser', function () {
             describe('Encodes form fields when @form option is true', function () {
                 it('Uses = separator', function () {
                     var parser = new Parser(),
-                        result = parser.parse(request),
-                        bodyString = result.body.read().toString();
-                    expect(bodyString).to.contain('cat=molly');
+                        result = parser.parse(request);
+                    expect(result.body).to.contain('cat=molly');
                 });
                 it('Uses : separator', function () {
                     var parser = new Parser(),
-                        result = parser.parse(request),
-                        bodyString = result.body.read().toString();
-                    expect(bodyString).to.contain('dog=bear');
+                        result = parser.parse(request);
+                    expect(result.body).to.contain('dog=bear');
                 });
                 it('Percent encodes values', function () {
                     var parser = new Parser(),
-                        result = parser.parse(request),
-                        bodyString = result.body.read().toString();
-                    expect(bodyString).to.contain('guineaPigs=Clyde%20and%20Claude');
+                        result = parser.parse(request);
+                    expect(result.body).to.contain('guineaPigs=Clyde%20and%20Claude');
                 });
                 it('Parses values in tripple quotes', function () {
                     var parser = new Parser(),
-                        result = parser.parse(request),
-                        bodyString = result.body.read().toString();
-                    expect(bodyString).to.contain('quoted=This%20is%20the%20value');
+                        result = parser.parse(request);
+                    expect(result.body).to.contain('quoted=This%20is%20the%20value');
                 });
                 it('Parses multi-line fields values', function () {
                     var parser = new Parser(),
                         result = parser.parse(request),
-                        bodyString = result.body.read().toString(),
                         expected = [
                             'Dear Life Cereal, Where do you get off?',
                             'Part of a balanced breakfast and delicious? Who do you think',
@@ -450,7 +444,7 @@ describe('Parser', function () {
                             'Griffin. Dictated but not read.'
                         ].join('\n');
                     expected = 'comments=' + encodeURIComponent(expected);
-                    expect(bodyString).to.contain(expected);
+                    expect(result.body).to.contain(expected);
                 });
 
                 // -------------------------------------------------------------
@@ -458,15 +452,13 @@ describe('Parser', function () {
                 describe('Comments', function () {
                     it('Skips lines beginning with #', function () {
                         var parser = new Parser(),
-                            result = parser.parse(request),
-                            bodyString = result.body.read().toString();
-                        expect(bodyString).to.not.contain('pount-comment');
+                            result = parser.parse(request);
+                        expect(result.body).to.not.contain('pount-comment');
                     });
                     it('Skips lines beginning with //', function () {
                         var parser = new Parser(),
-                            result = parser.parse(request),
-                            bodyString = result.body.read().toString();
-                        expect(bodyString).to.not.contain('slash-comment');
+                            result = parser.parse(request);
+                        expect(result.body).to.not.contain('slash-comment');
                     });
                 }); // Comments
 

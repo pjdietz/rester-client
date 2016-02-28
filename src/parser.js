@@ -90,7 +90,6 @@ Parser.prototype.parse = function (request) {
                     if (!hasHeader(options.headers, 'content-length')) {
                         options.headers['content-length'] = '' + body.length;
                     }
-                    body = stringToStream(body);
                 }
                 break;
             } else {
