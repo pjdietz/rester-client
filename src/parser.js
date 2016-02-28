@@ -46,7 +46,7 @@ Parser.prototype.parseLine = function (line) {
     if (!this.parsedRequestLine()) {
         this.parseRequestLine(line);
     } else {
-        this.parseHeaderLine(line);
+        this.parseHeaderSectionLine(line);
     }
 };
 
@@ -79,19 +79,20 @@ Parser.prototype.parseRequestLine = function (line) {
     }
 };
 
-Parser.prototype.parseHeaderLine = function (line) {
-    if (this.isQueryLine(line)) {
+Parser.prototype.parseHeaderSectionLine = function (line) {
+    if (this.isCommentLine(line)) {
+        // No-op
+    } else if (this.isQueryLine(line)) {
         this.parseQueryLine(line);
     } else if (this.isOptionLine(line)) {
         this.parseOptionLine(line);
     } else {
-        var words = line.split(':');
-        if (words.length > 1) {
-            var key = words[0].trim();
-            var value = words[1].trim();
-            this.result.options.headers[key] = value;
-        }
+        this.parseHeaderLine(line);
     }
+};
+
+Parser.prototype.isCommentLine = function (line) {
+    return beginsWith(line, ['#', '//']);
 };
 
 Parser.prototype.isQueryLine = function (line) {
@@ -132,6 +133,15 @@ Parser.prototype.parseOptionLine = function (line) {
         this.result.configuration[key] = value;
     } else {
         this.result.configuration[line] = true;
+    }
+};
+
+Parser.prototype.parseHeaderLine = function (line) {
+    var words = line.split(':');
+    if (words.length > 1) {
+        var key = words[0].trim();
+        var value = words[1].trim();
+        this.result.options.headers[key] = value;
     }
 };
 

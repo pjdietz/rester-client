@@ -140,7 +140,7 @@ describe('Parser', function () {
             });
         });
     });
-    context('When parsing eaders, query, and options', function () {
+    context('When parsing headers, query, and options', function () {
         var request = [
             'POST http://mydomain.com/cats?cat=molly&dog=bear',
             '?cat=oscar',
@@ -150,8 +150,8 @@ describe('Parser', function () {
             'Host: localhost',
             'Cache-control: no-cache',
             'Content-type: application/json',
-            '  # This is a pound-comment',
-            '  // This is a slash-comment',
+            '  # This is a pound-comment: not a header',
+            '  // This is a slash-comment= not a header',
             '@flag',
             '@followRedirects: true',
             '@redirectStatusCodes: [301, 302]',
@@ -225,28 +225,24 @@ describe('Parser', function () {
         });
 
         describe('Parses configuration', function () {
-
             it('Parses flag options', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
                 expect(result.configuration.flag).to.be.a('boolean');
                 expect(result.configuration.flag).to.equal(true);
             });
-
             it('Parses boolean options', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
                 expect(result.configuration.followRedirects).to.be.a('boolean');
                 expect(result.configuration.followRedirects).to.equal(true);
             });
-
             it('Parses number options', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
                 expect(result.configuration.redirectLimit).to.be.a('number');
                 expect(result.configuration.redirectLimit).to.equal(5);
             });
-
             it('Parses array options', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
@@ -255,26 +251,37 @@ describe('Parser', function () {
                 expect(result.configuration.redirectStatusCodes).to.include(301);
                 expect(result.configuration.redirectStatusCodes).to.include(302);
             });
-
             it('Parses string options with quotes', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
                 expect(result.configuration.stringOption).to.be.a('string');
                 expect(result.configuration.stringOption).to.equal('stringValue');
             });
-
             it('Parses string options without quotes', function () {
                 var parser = new Parser(),
                     result = parser.parse(request);
                 expect(result.configuration.unquotedStringOption).to.be.a('string');
                 expect(result.configuration.unquotedStringOption).to.equal('stringValue=2');
             });
-
         });
+
+        describe('Comments', function () {
+            it('Skips lines begining with #', function () {
+                var parser = new Parser(),
+                    result = parser.parse(request);
+                expect(result.options.toString()).to.not.contain('pound-comment');
+            });
+            it('Skips lines begining with //', function () {
+                var parser = new Parser(),
+                    result = parser.parse(request);
+                expect(result.options.toString()).to.not.contain('slash-comment');
+            });
+        });
+
     });
 
     // TODO: Populate options from parsed Host header
     // TODO: Place specific @options in options instead of settings
     // TODO: Parse body
-    
+
 });
