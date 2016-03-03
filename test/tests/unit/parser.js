@@ -428,8 +428,75 @@ describe('Parser', function () {
                 expect(countHeaders).to.equal(0);
             });
         });
+
+        // ---------------------------------------------------------------------
+
+        describe('Forms', function () {
+            var result;
+            beforeEach(function () {
+                var request = [
+                    'POST http://mydomain.com/cats',
+                    'Host: localhost',
+                    '@form',
+                    '',
+                    'cat=molly',
+                    ' dog: bear',
+                    'guineaPigs: Clyde and Claude',
+                    '  # comment: Ignore this pound-comment',
+                    '  // comment: Ignore this slash-comment',
+                    '    quoted = """This is the value""" This is ignored.',
+                    'comments: """Dear Life Cereal, Where do you get off?',
+                    'Part of a balanced breakfast and delicious? Who do you think',
+                    'you are? By now, you may have guessed I\'m speaking',
+                    'ironically and have nothing but good things to say about what',
+                    'you do. Life Cereal, do not change a thing. Signed: Peter',
+                    'Griffin. Dictated but not read."""',
+                ].join(eol);
+                result = parser.parse(request);
+            });
+
+            it('Adds Content-type header when @form option is true', function () {
+                expect(result.options.headers['Content-type'].toLowerCase())
+                    .to.equal('application/x-www-form-urlencoded');
+            });
+
+            describe('Encodes form fields when @form option is true', function () {
+                it('Uses = separator', function () {
+                    expect(result.body).to.contain('cat=molly');
+                });
+                it('Uses : separator', function () {
+                    expect(result.body).to.contain('dog=bear');
+                });
+                it('Percent encodes values', function () {
+                    expect(result.body).to.contain('guineaPigs=Clyde%20and%20Claude');
+                });
+                it('Percent encodes values', function () {
+                    expect(result.body).to.contain('guineaPigs=Clyde%20and%20Claude');
+                });
+                it('Parses values in tripple quotes', function () {
+                    expect(result.body).to.contain('quoted=This%20is%20the%20value');
+                });
+                it('Parses multi-line fields values', function () {
+                    var expected = [
+                            'Dear Life Cereal, Where do you get off?',
+                            'Part of a balanced breakfast and delicious? Who do you think',
+                            'you are? By now, you may have guessed I\'m speaking',
+                            'ironically and have nothing but good things to say about what',
+                            'you do. Life Cereal, do not change a thing. Signed: Peter',
+                            'Griffin. Dictated but not read.'
+                        ].join(eol);
+                    expected = 'comments=' + encodeURIComponent(expected);
+                    expect(result.body).to.contain(expected);
+                });
+            });
+            describe('Comments', function () {
+                it('Skips lines beginning with #', function () {
+                    expect(result.body).to.not.contain('pount-comment');
+                });
+                it('Skips lines beginning with //', function () {
+                    expect(result.body).to.not.contain('slash-comment');
+                });
+            });
+        });
     });
-
-    // TODO: Parse body
-
 });

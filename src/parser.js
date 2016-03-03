@@ -38,13 +38,8 @@ Parser.prototype.parseRequest = function (request) {
         if (line !== '') {
             this.parseLine(line);
         } else {
-            // Return the lines to the original order.
-            lines.reverse();
-            var body = lines.join(this.configuration.eol).trim();
-            if (body) {
-                this.result.body = body;
-                this.result.options.headers['content-length'] = '' + body.length;
-            }
+            this.parseBody(lines);
+            break;
         }
     }
     this.ensureUri();
@@ -200,6 +195,82 @@ Parser.prototype.setConfiguration = function (configuration) {
 
 Parser.prototype.parsedRequestLine = function () {
     return !!this.result.options.method;
+};
+
+Parser.prototype.parseBody = function (lines) {
+    lines.reverse();
+    if (this.isForm()) {
+        this.result.options.headers['Content-type'] = 'application/x-www-form-urlencoded';
+        this.parseForm(lines);
+        return;
+    }
+    // Return the lines to the original order.
+    var body = lines.join(this.configuration.eol).trim();
+    if (body) {
+        this.result.body = body;
+        this.result.options.headers['content-length'] = '' + body.length;
+    }
+};
+
+Parser.prototype.isForm = function () {
+    return this.result.configuration.form === true;
+};
+
+Parser.prototype.parseForm = function (lines) {
+
+    var eol = this.configuration.eol,
+        fields = {},
+        form,
+        key,
+        multiline;
+
+    lines.forEach(function (line) {
+        var pos, separator, value, words;
+
+        if (multiline === undefined) {
+            // This is the beginning of a new field.
+            // Skip comment (lines beginning with #)
+            if (beginsWith(line.trim(), ['#', '//'])) {
+                return;
+            }
+            separator = earlistSubstring([':','='], line);
+            if (separator) {
+                words = line.split(separator);
+                key = words[0].trim();
+                value = words[1];
+                // Check if this value begins a multiline field.
+                pos = value.indexOf('"""');
+                if (pos !== -1) {
+                    value = value.slice(pos + 3);
+                    // Check if this value also ends the tripple quoted value.
+                    pos = value.indexOf('"""');
+                    if (pos !== -1) {
+                        // The entire quotes value is on one line.
+                        value = value.slice(0, pos);
+                    } else {
+                        // Start multiline.
+                        multiline = value;
+                        return;
+                    }
+                }
+                fields[key] = value.trim();
+            }
+        } else {
+            // This is the continuation of a multiline field.
+            // Check if this line ends the tripple quoted value.
+            pos = line.indexOf('"""');
+            if (pos !== -1) {
+                fields[key] = multiline + eol + line.slice(0, pos);
+                multiline = undefined;
+            }
+            multiline += eol + line;
+        }
+    });
+
+    form = querystring.stringify(fields);
+    if (form) {
+        this.result.body = form;
+    }
 };
 
 // -----------------------------------------------------------------------------
