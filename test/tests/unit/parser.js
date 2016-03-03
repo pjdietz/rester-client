@@ -359,19 +359,37 @@ describe('Parser', function () {
                     });
                 });
                 context('And request contains Host header', function () {
-                    beforeEach(function () {
-                        result = parser.parse([
-                            'GET / HTTP/1.1',
-                            'Host: yourdomain.com:9090'
-                        ].join(eol));
+                    context('With a port', function () {
+                        beforeEach(function () {
+                            result = parser.parse([
+                                'GET / HTTP/1.1',
+                                'host: yourdomain.com:9090'
+                            ].join(eol));
+                        });
+                        it('Uses URI parsed from Host header', function () {
+                            expect(result.options.protocol).not.to.be.defined;
+                            expect(result.options.host).to.equal('yourdomain.com');
+                            expect(result.options.port).to.equal(9090);
+                        });
+                        it('Includes provided Host header', function () {
+                            expect(result.options.headers.host).to.equal('yourdomain.com:9090');
+                        });
                     });
-                    it('Uses URI parsed from Host header', function () {
-                        // expect(result.options.protocol).to.equal('http:');
-                        expect(result.options.host).to.equal('yourdomain.com');
-                        // expect(result.options.port).to.equal(9090);
-                    });
-                    it('Includes provided Host header', function () {
-                        expect(result.options.headers.Host).to.equal('yourdomain.com');
+                    context('Without a port', function () {
+                        beforeEach(function () {
+                            result = parser.parse([
+                                'GET / HTTP/1.1',
+                                'host: yourdomain.com'
+                            ].join(eol));
+                        });
+                        it('Uses URI parsed from Host header', function () {
+                            expect(result.options.protocol).not.to.be.defined;
+                            expect(result.options.host).to.equal('yourdomain.com');
+                            expect(result.options.port).not.to.be.defined;
+                        });
+                        it('Includes provided Host header', function () {
+                            expect(result.options.headers.host).to.equal('yourdomain.com');
+                        });
                     });
                 });
             });

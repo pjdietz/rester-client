@@ -49,14 +49,15 @@ Parser.prototype.parseRequest = function (request) {
 
 Parser.prototype.ensureUri = function () {
     if (!this.result.options.host) {
-        // TODO: Check for header name case insensitively
-        if (this.result.options.headers.Host) {
-            var parts = this.result.options.headers.Host.split(':');
+        var hostHeaderValue = valueForCaseInsensitiveKey(
+            this.result.options.headers, 'Host');
+        if (hostHeaderValue) {
+            var parts = hostHeaderValue.split(':', 2);
             if (parts.length === 1) {
-                this.result.options.host = this.result.options.headers.Host;
+                this.result.options.host = hostHeaderValue;
             } else {
                 this.result.options.host = parts[0];
-                this.result.options.port = parts[1];
+                this.result.options.port = parseInt(parts[1], 10);
             }
         }
     }
@@ -175,7 +176,7 @@ Parser.prototype.parseHeaderLine = function (line) {
     var words = line.split(':');
     if (words.length > 1) {
         var key = words[0].trim();
-        var value = words[1].trim();
+        var value = words.slice(1).join(':').trim();
         this.result.options.headers[key] = value;
     }
 };
@@ -351,6 +352,17 @@ function mergeQuery(path, newQuery) {
     queryString = querystring.stringify(query);
     path = parsed.pathname + '?' + queryString;
     return path;
+}
+
+function valueForCaseInsensitiveKey(object, key) {
+    var normalKey = key.toLowerCase();
+    var keys = Object.keys(object);
+    for (var i = 0; i < keys.length; ++i) {
+        var originalKey = keys[i];
+        if (originalKey.toLowerCase() === normalKey) {
+            return object[originalKey];
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
