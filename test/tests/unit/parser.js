@@ -4,9 +4,22 @@ var url = require('url');
 
 var expect = require('chai').expect;
 
+var eol = '\r\n',
+    encoding = 'utf-8';
+
 var Parser = require('../../../src/parser');
 
 describe('Parser', function () {
+
+    var parser;
+
+    beforeEach(function () {
+        parser = new Parser({
+            encoding: encoding,
+            eol: eol
+        });
+    });
+
     context('When parsing request line', function () {
         var requests = [
             {
@@ -79,8 +92,7 @@ describe('Parser', function () {
         describe('Parses method', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.method).to.equal(test.method);
                 });
             });
@@ -88,8 +100,7 @@ describe('Parser', function () {
         describe('Parses protocol', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.protocol).to.equal(test.protocol);
                 });
             });
@@ -97,8 +108,7 @@ describe('Parser', function () {
         describe('Parses auth', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.auth).to.equal(test.auth);
                 });
             });
@@ -106,8 +116,7 @@ describe('Parser', function () {
         describe('Parses host', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.host).to.equal(test.host);
                 });
             });
@@ -115,8 +124,7 @@ describe('Parser', function () {
         describe('Parses hostname', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.hostname).to.equal(test.hostname);
                 });
             });
@@ -124,8 +132,7 @@ describe('Parser', function () {
         describe('Parses port', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.port).to.equal(test.port);
                 });
             });
@@ -133,8 +140,7 @@ describe('Parser', function () {
         describe('Parses path', function () {
             requests.forEach(function (test) {
                 it(test.description, function () {
-                    var parser = new Parser(),
-                        result = parser.parse(test.request);
+                    var result = parser.parse(test.request);
                     expect(result.options.path).to.equal(test.path);
                 });
             });
@@ -161,7 +167,7 @@ describe('Parser', function () {
             '',
             '{\'name\': \'molly\'}',
             ''
-        ].join('\r\n');
+        ].join(eol);
 
         it('Parses headers', function () {
             var expectedHeaders = {
@@ -170,7 +176,6 @@ describe('Parser', function () {
                     'Content-type': 'application/json',
                 },
                 headers = Object.keys(expectedHeaders),
-                parser = new Parser(),
                 result = parser.parse(request),
                 header, i, u;
             for (i = 0, u = headers.length; i < u; ++i) {
@@ -181,44 +186,37 @@ describe('Parser', function () {
 
         describe('Parses query', function () {
             it('Does not replace parameters in request line not overriden later', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.dog).to.equal('bear');
             });
             it('Replaces parameters with overrides', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.cat).to.equal('oscar');
             });
             it('Parses parameters starting with ?', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.cat).to.equal('oscar');
             });
             it('Parses parameters starting with &', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.hamster).to.equal('Fizzgig');
             });
             it('Parses parameters separated with =', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.cat).to.equal('oscar');
             });
             it('Parses parameters separated with :', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.hamster).to.equal('Fizzgig');
             });
             it('Parses parameters with no values', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request),
+                var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.query).to.equal('');
             });
@@ -226,40 +224,34 @@ describe('Parser', function () {
 
         describe('Parses configuration', function () {
             it('Parses flag options', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.flag).to.be.a('boolean');
                 expect(result.configuration.flag).to.equal(true);
             });
             it('Parses boolean options', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.followRedirects).to.be.a('boolean');
                 expect(result.configuration.followRedirects).to.equal(true);
             });
             it('Parses number options', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.redirectLimit).to.be.a('number');
                 expect(result.configuration.redirectLimit).to.equal(5);
             });
             it('Parses array options', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.redirectStatusCodes).to.be.a('array');
                 expect(result.configuration.redirectStatusCodes).to.have.length(2);
                 expect(result.configuration.redirectStatusCodes).to.include(301);
                 expect(result.configuration.redirectStatusCodes).to.include(302);
             });
             it('Parses string options with quotes', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.stringOption).to.be.a('string');
                 expect(result.configuration.stringOption).to.equal('stringValue');
             });
             it('Parses string options without quotes', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.configuration.unquotedStringOption).to.be.a('string');
                 expect(result.configuration.unquotedStringOption).to.equal('stringValue=2');
             });
@@ -267,21 +259,125 @@ describe('Parser', function () {
 
         describe('Comments', function () {
             it('Skips lines begining with #', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.options.toString()).to.not.contain('pound-comment');
             });
             it('Skips lines begining with //', function () {
-                var parser = new Parser(),
-                    result = parser.parse(request);
+                var result = parser.parse(request);
                 expect(result.options.toString()).to.not.contain('slash-comment');
             });
         });
 
+        describe('URI', function () {
+            var result;
+            beforeEach(function () {
+                result = {};
+            });
+            context('When the request line specifies a host', function () {
+                context('And request does not contains options or a Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse('GET http://myhost.com');
+                    });
+                    it('Uses URI parsed from request line', function () {
+                        expect(result.options.protocol).to.equal('http:');
+                        expect(result.options.host).to.equal('myhost.com');
+                        expect(result.options.port).to.be.null;
+                    });
+                    it('Does not supply a host header', function () {
+                        expect(result.options.headers.Host).not.to.be.defined;
+                    });
+                });
+                context('And request contains options but no Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse([
+                            'GET http://myhost.com',
+                            '@protocol: https',
+                            '@host: yourhost.com',
+                            '@port: 8080',
+                            '@auth: rufus:secret'
+                        ].join(eol));
+                    });
+                    it('Uses URI parsed from request line', function () {
+                        expect(result.options.protocol).to.equal('https:');
+                        expect(result.options.host).to.equal('yourhost.com');
+                        expect(result.options.port).to.equal(8080);
+                        expect(result.options.auth).to.equal('rufus:secret');
+                    });
+                    it('Does not supply a Host header', function () {
+                        expect(result.options.headers.Host).not.to.be.defined;
+                    });
+                });
+                context('And request contains Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse([
+                            'GET http://myhost.com',
+                            'Host: yourdomain.com'
+                        ].join(eol));
+                    });
+                    it('Uses URI parsed from request line', function () {
+                        expect(result.options.protocol).to.equal('http:');
+                        expect(result.options.host).to.equal('myhost.com');
+                        expect(result.options.port).to.be.null;
+                    });
+                    it('Includes provided Host header', function () {
+                        expect(result.options.headers.Host).to.equal('yourdomain.com');
+                    });
+                });
+            });
+            context('When the request line does not specify a host', function () {
+                context('And request does not contains options or a Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse('GET / HTTP/1.1');
+                    });
+                    it('Does not provide a URI', function () {
+                        expect(result.options.protocol).to.be.null;
+                        expect(result.options.host).to.be.null;
+                        expect(result.options.port).to.be.null;
+                    });
+                    it('Does not supply a host header', function () {
+                        expect(result.options.headers.Host).not.to.be.defined;
+                    });
+                });
+                context('And request contains options but no Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse([
+                            'GET / HTTP/1.1',
+                            '@protocol: https',
+                            '@host: yourhost.com',
+                            '@port: 8080',
+                            '@auth: rufus:secret'
+                        ].join(eol));
+                    });
+                    it('Uses URI parsed from request line', function () {
+                        expect(result.options.protocol).to.equal('https:');
+                        expect(result.options.host).to.equal('yourhost.com');
+                        expect(result.options.port).to.equal(8080);
+                        expect(result.options.auth).to.equal('rufus:secret');
+                    });
+                    it('Does not supply a Host header', function () {
+                        expect(result.options.headers.Host).not.to.be.defined;
+                    });
+                });
+                context('And request contains Host header', function () {
+                    beforeEach(function () {
+                        result = parser.parse([
+                            'GET / HTTP/1.1',
+                            'Host: yourdomain.com:9090'
+                        ].join(eol));
+                    });
+                    it('Uses URI parsed from Host header', function () {
+                        // expect(result.options.protocol).to.equal('http:');
+                        expect(result.options.host).to.equal('yourdomain.com');
+                        // expect(result.options.port).to.equal(9090);
+                    });
+                    it('Includes provided Host header', function () {
+                        expect(result.options.headers.Host).to.equal('yourdomain.com');
+                    });
+                });
+            });
+        });
     });
 
-    // TODO: Populate options from parsed Host header
-    // TODO: Place specific @options in options instead of settings
     // TODO: Parse body
 
 });

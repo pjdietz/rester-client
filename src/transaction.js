@@ -38,7 +38,8 @@ Transaction.prototype.sendRequest = function (requestOptions, body) {
     });
     this.requests.push(this.requestFormatter.format(request, body));
     if (body) {
-        var bodyStream = stringToStream(body);
+        console.log(body);
+        var bodyStream = stringToStream(body.trim());
         bodyStream.pipe(request);
     } else {
         request.end();

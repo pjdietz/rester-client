@@ -23,7 +23,7 @@ Parser.prototype.initializeResult = function () {
         options: {
             headers: {}
         },
-        body: {},
+        body: null,
         configuration: {}
     };
 };
@@ -38,8 +38,24 @@ Parser.prototype.parseRequest = function (request) {
         line = lines.pop().trim();
         this.parseLine(line);
     }
+    this.ensureUri();
     // Merge the parsed query parameters onto the request path.
     this.result.options.path = mergeQuery(this.result.options.path, this.query);
+};
+
+Parser.prototype.ensureUri = function () {
+    if (!this.result.options.host) {
+        // TODO: Check for header name case insensitively
+        if (this.result.options.headers.Host) {
+            var parts = this.result.options.headers.Host.split(':');
+            if (parts.length === 1) {
+                this.result.options.host = this.result.options.headers.Host;
+            } else {
+                this.result.options.host = parts[0];
+                this.result.options.port = parts[1];
+            }
+        }
+    }
 };
 
 Parser.prototype.parseLine = function (line) {
@@ -124,15 +140,30 @@ Parser.prototype.parseOptionLine = function (line) {
     if (separator) {
         var words = line.split(separator);
         var key = words[0].trim();
-        var value = words[1].trim();
+        var value = words.slice(1).join(separator).trim();
         try {
             value = JSON.parse(value);
         } catch (e) {
             // Do nothing. Retain unparsed value.
         }
-        this.result.configuration[key] = value;
+        this.setResultOption(key, value);
     } else {
-        this.result.configuration[line] = true;
+        this.setResultOption(line, true);
+    }
+};
+
+Parser.prototype.setResultOption = function (key, value) {
+    switch (key) {
+        case 'protocol':
+            this.result.options[key] = normalizeProtocol(value);
+            break;
+        case 'auth':
+        case 'host':
+        case 'port':
+            this.result.options[key] = value;
+            break;
+        default:
+            this.result.configuration[key] = value;
     }
 };
 
@@ -148,12 +179,12 @@ Parser.prototype.parseHeaderLine = function (line) {
 Parser.prototype.setConfiguration = function (configuration) {
     var userConfiguration = configuration || {};
     this.configuration = {
-        ecoding: 'utf8',
+        encoding: 'utf8',
         eol: '\r\n'
     };
     for (var property in this.configuration) {
         if (userConfiguration[property]) {
-            this.confguration[property] = userConfiguration[property];
+            this.configuration[property] = userConfiguration[property];
         }
     }
 };
@@ -163,6 +194,14 @@ Parser.prototype.parsedRequestLine = function () {
 };
 
 // -----------------------------------------------------------------------------
+
+function normalizeProtocol(protocol) {
+    if (protocol.slice(0, 5) === 'https') {
+        return 'https:';
+    } else {
+        return 'http:';
+    }
+}
 
 /**
  * Tests if a string begins with any of the string in the array of needles.
