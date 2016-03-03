@@ -23,7 +23,6 @@ Parser.prototype.initializeResult = function () {
         options: {
             headers: {}
         },
-        body: null,
         configuration: {}
     };
 };
@@ -36,7 +35,17 @@ Parser.prototype.parseRequest = function (request) {
     lines.reverse();
     while (lines.length > 0) {
         line = lines.pop().trim();
-        this.parseLine(line);
+        if (line !== '') {
+            this.parseLine(line);
+        } else {
+            // Return the lines to the original order.
+            lines.reverse();
+            var body = lines.join(this.configuration.eol).trim();
+            if (body) {
+                this.result.body = body;
+                this.result.options.headers['content-length'] = '' + body.length;
+            }
+        }
     }
     this.ensureUri();
     // Merge the parsed query parameters onto the request path.

@@ -378,6 +378,58 @@ describe('Parser', function () {
         });
     });
 
+    describe('Body', function () {
+        describe('With body', function () {
+            var result;
+            beforeEach(function () {
+                var request = [
+                    'POST http://mydomain.com/cats',
+                    'Host: localhost',
+                    'Content-type: application/json',
+                    '',
+                    '{"name": "molly"}'
+                ].join(eol);
+                result = parser.parse(request);
+            });
+            it('Provides body as string', function () {
+                expect(result.body).to.equal('{"name": "molly"}');
+            });
+            it('Adds content-length header', function () {
+                expect(result.options.headers['content-length']).to.equal('17');
+            });
+        });
+
+        describe('Without body', function () {
+            var result;
+            beforeEach(function () {
+                var request = [
+                    'GET http://mydomain.com/cats',
+                    'Host: localhost',
+                    'Content-type: application/json',
+                    '',
+                    '',
+                    ''
+                ].join(eol);
+                result = parser.parse(request);
+            });
+
+            it('Body is undefined when no body is present', function () {
+                expect(result.body).to.be.undefined;
+            });
+            it('No content-length header is added when no body is present', function () {
+                var headers = Object.keys(result.options.headers),
+                    countHeaders = 0, header, i, u;
+                for (i = 0, u = headers.length; i < u; ++i) {
+                    header = headers[i];
+                    if (header.toLowerCase() === 'content-length') {
+                        ++countHeaders;
+                    }
+                }
+                expect(countHeaders).to.equal(0);
+            });
+        });
+    });
+
     // TODO: Parse body
 
 });
