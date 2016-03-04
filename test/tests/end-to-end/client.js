@@ -67,7 +67,7 @@ describe('Acceptance', function () {
                     });
                     transaction.send();
                 });
-                it('Request string represnetation contains body', function () {
+                it('Request string representation contains body', function () {
                     expect(transaction.getRequest()).to.contain(body);
                 });
                 it('Submits request body to server', function () {

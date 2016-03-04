@@ -96,7 +96,7 @@ describe('Transaction', function () {
                 }, undefined, {
                     followRedirects: true,
                     redirectLimit: 10,
-                    redirectStatusCodes: [301, 302],
+                    redirectStatusCodes: [301, 302]
                 });
                 addListeners();
                 transaction.send();
@@ -129,7 +129,7 @@ describe('Transaction', function () {
                 }, undefined, {
                     followRedirects: true,
                     redirectLimit: 10,
-                    redirectStatusCodes: [301, 302],
+                    redirectStatusCodes: [301, 302]
                 });
                 addListeners();
                 transaction.send();
@@ -296,23 +296,23 @@ describe('Transaction', function () {
                 }, undefined, {
                     followRedirects: true,
                     redirectLimit: 10,
-                    redirectStatusCodes: [301, 302],
+                    redirectStatusCodes: [301, 302]
                 });
                 transaction.on('end', done);
                 transaction.send();
             });
             describe('Requests', function () {
-                it('Contains a request for the inital request and each redirect', function () {
+                it('Contains a request for the initial request and each redirect', function () {
                     expect(transaction.requests.length).to.equal(3);
                 });
-                it('getRequest() returns the inital request', function () {
+                it('getRequest() returns the initial request', function () {
                     expect(transaction.getRequest()).to.contain('GET /redirect/302/2');
                 });
                 it('Requests array includes initial request followed by redirect requests', function () {
                     var expected = [
                         'GET /redirect/302/2',
                         'GET /redirect/302/1',
-                        'GET /hello',
+                        'GET /hello'
                     ];
                     for (var i = 0; i < expected.length; ++i) {
                         expect(transaction.requests[i]).to.contain(expected[i]);
@@ -331,7 +331,7 @@ describe('Transaction', function () {
                     var expected = [
                         'HTTP/1.1 302 Found',
                         'HTTP/1.1 302 Found',
-                        'HTTP/1.1 200 OK',
+                        'HTTP/1.1 200 OK'
                     ];
                     for (var i = 0; i < expected.length; ++i) {
                         expect(transaction.responses[i]).to.contain(expected[i]);
@@ -359,12 +359,3 @@ describe('Transaction', function () {
         });
     });
 });
-
-// -------------------------------------------------------------------------
-
-function stringToStream(string) {
-    var s = new stream.Readable();
-    s.push(string);
-    s.push(null);
-    return s;
-}

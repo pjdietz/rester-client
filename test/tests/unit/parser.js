@@ -87,7 +87,7 @@ describe('Parser', function () {
                 hostname: 'mydomain.com',
                 port: null,
                 path: '/cats'
-            },
+            }
         ];
         describe('Parses method', function () {
             requests.forEach(function (test) {
@@ -173,7 +173,7 @@ describe('Parser', function () {
             var expectedHeaders = {
                     'Host': 'localhost',
                     'Cache-control': 'no-cache',
-                    'Content-type': 'application/json',
+                    'Content-type': 'application/json'
                 },
                 headers = Object.keys(expectedHeaders),
                 result = parser.parse(request),
@@ -185,7 +185,7 @@ describe('Parser', function () {
         });
 
         describe('Parses query', function () {
-            it('Does not replace parameters in request line not overriden later', function () {
+            it('Does not replace parameters in request line not overridden later', function () {
                 var result = parser.parse(request),
                     query = url.parse(result.options.path, true).query;
                 expect(query.dog).to.equal('bear');
@@ -258,11 +258,11 @@ describe('Parser', function () {
         });
 
         describe('Comments', function () {
-            it('Skips lines begining with #', function () {
+            it('Skips lines beginning with #', function () {
                 var result = parser.parse(request);
                 expect(result.options.toString()).to.not.contain('pound-comment');
             });
-            it('Skips lines begining with //', function () {
+            it('Skips lines beginning with //', function () {
                 var result = parser.parse(request);
                 expect(result.options.toString()).to.not.contain('slash-comment');
             });
@@ -468,7 +468,7 @@ describe('Parser', function () {
                     'you are? By now, you may have guessed I\'m speaking',
                     'ironically and have nothing but good things to say about what',
                     'you do. Life Cereal, do not change a thing. Signed: Peter',
-                    'Griffin. Dictated but not read."""',
+                    'Griffin. Dictated but not read."""'
                 ].join(eol);
                 result = parser.parse(request);
             });
@@ -491,7 +491,7 @@ describe('Parser', function () {
                 it('Percent encodes values', function () {
                     expect(result.body).to.contain('guineaPigs=Clyde%20and%20Claude');
                 });
-                it('Parses values in tripple quotes', function () {
+                it('Parses values inside multiline field delimiters', function () {
                     expect(result.body).to.contain('quoted=This%20is%20the%20value');
                 });
                 it('Parses multi-line fields values', function () {
@@ -509,7 +509,7 @@ describe('Parser', function () {
             });
             describe('Comments', function () {
                 it('Skips lines beginning with #', function () {
-                    expect(result.body).to.not.contain('pount-comment');
+                    expect(result.body).to.not.contain('pound-comment');
                 });
                 it('Skips lines beginning with //', function () {
                     expect(result.body).to.not.contain('slash-comment');
