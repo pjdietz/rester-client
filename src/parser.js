@@ -123,12 +123,11 @@ Parser.prototype.isQueryLine = function (line) {
 Parser.prototype.parseQueryLine = function (line) {
     // Query parameter
     line = line.slice(1).trim();
-    var separator = earlistSubstring([':','='], line);
+    var separator = earliestSubstring([':','='], line);
     if (separator) {
         var words = line.split(separator);
         var key = words[0].trim();
-        var value = words[1].trim();
-        this.query[key] = value;
+        this.query[key] = words.slice(1).join(separator).trim();
     } else {
         this.query[line] = '';
     }
@@ -141,7 +140,7 @@ Parser.prototype.isOptionLine = function (line) {
 Parser.prototype.parseOptionLine = function (line) {
     // Query parameter
     line = line.slice(1).trim();
-    var separator = earlistSubstring([':','='], line);
+    var separator = earliestSubstring([':','='], line);
     if (separator) {
         var words = line.split(separator);
         var key = words[0].trim();
@@ -176,8 +175,7 @@ Parser.prototype.parseHeaderLine = function (line) {
     var words = line.split(':');
     if (words.length > 1) {
         var key = words[0].trim();
-        var value = words.slice(1).join(':').trim();
-        this.result.options.headers[key] = value;
+        this.result.options.headers[key] = words.slice(1).join(':').trim();
     }
 };
 
@@ -187,7 +185,9 @@ Parser.prototype.setConfiguration = function (configuration) {
         encoding: 'utf8',
         eol: '\r\n'
     };
-    for (var property in this.configuration) {
+    var properties = Object.keys(this.configuration);
+    for (var i = 0; i < properties.length; ++i) {
+        var property = properties[i];
         if (userConfiguration[property]) {
             this.configuration[property] = userConfiguration[property];
         }
@@ -200,15 +200,16 @@ Parser.prototype.parsedRequestLine = function () {
 
 Parser.prototype.parseBody = function (lines) {
     lines.reverse();
-    if (this.isForm()) {
-        this.result.options.headers['Content-type'] = 'application/x-www-form-urlencoded';
-        this.parseForm(lines);
-        return;
-    }
-    // Return the lines to the original order.
     var body = lines.join(this.configuration.eol).trim();
+    // Return the lines to the original order.
     if (body) {
-        this.result.body = body;
+        if (this.isForm()) {
+            this.result.options.headers['Content-type'] = 'application/x-www-form-urlencoded';
+            this.result.body = this.parseForm(body);
+        } else {
+            this.result.body = body;
+        }
+        // TODO Do not override content-length header if set explicitly
         this.result.options.headers['content-length'] = '' + body.length;
     }
 };
@@ -217,61 +218,113 @@ Parser.prototype.isForm = function () {
     return this.result.configuration.form === true;
 };
 
-Parser.prototype.parseForm = function (lines) {
+Parser.prototype.parseForm = function (body) {
+    var formParser = new FormParser(this.configuration);
+    return formParser.parse(body);
+};
 
-    var eol = this.configuration.eol,
-        fields = {},
-        form,
-        key,
-        multiline;
+// -----------------------------------------------------------------------------
 
-    lines.forEach(function (line) {
-        var pos, separator, value, words;
+function FormParser(configuration) {
+    this.setConfiguration(configuration);
+    this.fields = {};
+    this.multilineInProgress = false;
+    this.multilineValue = null;
+    this.multilineKey = null;
+}
 
-        if (multiline === undefined) {
-            // This is the beginning of a new field.
-            // Skip comment (lines beginning with #)
-            if (beginsWith(line.trim(), ['#', '//'])) {
+FormParser.prototype.setConfiguration = function (configuration) {
+    var userConfiguration = configuration;
+    this.configuration = {
+        encoding: 'utf8',
+        eol: '\r\n',
+        multilineStart: '"""',
+        multilineEnd: '"""'
+    };
+    var properties = Object.keys(this.configuration);
+    for (var i = 0; i < properties.length; ++i) {
+        var property = properties[i];
+        if (userConfiguration[property]) {
+            this.configuration[property] = userConfiguration[property];
+        }
+    }
+};
+
+FormParser.prototype.parse = function (body) {
+    // Split the string into an array of lines and reverse so that we can pop
+    // lines off the stack and read them in order.
+    var lines = body.split(this.configuration.eol);
+    lines.reverse();
+    while (lines.length > 0) {
+        var line = lines.pop().trim();
+        this.parseLine(line);
+    }
+    return querystring.stringify(this.fields);
+};
+
+FormParser.prototype.parseLine = function(line) {
+    if (this.multilineInProgress) {
+        this.parseMultilineField(line);
+    } else {
+        this.parseField(line);
+    }
+};
+
+FormParser.prototype.isCommentLine = function (line) {
+    return beginsWith(line, ['#', '//']);
+};
+
+FormParser.prototype.parseField = function (line) {
+    if (this.isCommentLine(line)) {
+        return; // no-op
+    }
+    var key, pos, separator, value, words;
+    separator = earliestSubstring([':','='], line);
+    if (separator) {
+        words = line.split(separator);
+        key = words[0].trim();
+        value = words[1];
+        // Check if this value begins a multiline field.
+        pos = value.indexOf(this.configuration.multilineStart);
+        if (pos !== -1) {
+            value = value.slice(pos + this.configuration.multilineStart.length);
+            // Check if this value also ends a multiline field.
+            pos = value.indexOf(this.configuration.multilineStart);
+            if (pos !== -1) {
+                // The entire multiline value is on one line.
+                value = value.slice(0, pos);
+            } else {
+                // Start multiline.
+                this.multilineInProgress = true;
+                this.multilineKey = key;
+                this.multilineValue = value;
                 return;
             }
-            separator = earlistSubstring([':','='], line);
-            if (separator) {
-                words = line.split(separator);
-                key = words[0].trim();
-                value = words[1];
-                // Check if this value begins a multiline field.
-                pos = value.indexOf('"""');
-                if (pos !== -1) {
-                    value = value.slice(pos + 3);
-                    // Check if this value also ends the tripple quoted value.
-                    pos = value.indexOf('"""');
-                    if (pos !== -1) {
-                        // The entire quotes value is on one line.
-                        value = value.slice(0, pos);
-                    } else {
-                        // Start multiline.
-                        multiline = value;
-                        return;
-                    }
-                }
-                fields[key] = value.trim();
-            }
-        } else {
-            // This is the continuation of a multiline field.
-            // Check if this line ends the tripple quoted value.
-            pos = line.indexOf('"""');
-            if (pos !== -1) {
-                fields[key] = multiline + eol + line.slice(0, pos);
-                multiline = undefined;
-            }
-            multiline += eol + line;
         }
-    });
-
-    form = querystring.stringify(fields);
-    if (form) {
-        this.result.body = form;
+        this.fields[key] = value.trim();
     }
+};
+
+FormParser.prototype.parseMultilineField = function (line) {
+    if (this.isEndIfMultilineField(line)) {
+        this.completeMultilineField(line);
+    } else {
+        this.continueMultilineField(line);
+    }
+};
+
+FormParser.prototype.isEndIfMultilineField = function (line) {
+    return line.indexOf(this.configuration.multilineEnd) !== -1;
+};
+
+FormParser.prototype.continueMultilineField = function (line) {
+    this.multilineValue += this.configuration.eol + line;
+};
+
+FormParser.prototype.completeMultilineField = function (line) {
+    var pos = line.indexOf(this.configuration.multilineEnd);
+    this.fields[this.multilineKey] = this.multilineValue + this.configuration.eol + line.slice(0, pos);
+    this.multilineInProgress = false;
 };
 
 // -----------------------------------------------------------------------------
@@ -307,12 +360,12 @@ function beginsWith(haystack, needles) {
  * that occurs at the earliest location inside the haystack. If no needs
  * are present in the haystack, return undefined.
  *
- * @param {array} needles Strings to search for
+ * @param {string[]} needles Strings to search for
  * @param {string} haystack String that should contains a needles
  * @return {string|undefined} The needles that occurs earlier in the haystack
  */
-function earlistSubstring(needles, haystack) {
-    var position, minPosition, minNeedle;
+function earliestSubstring(needles, haystack) {
+    var position, minPosition, minNeedle = undefined;
     minPosition = haystack.length;
     needles.forEach(function (needle) {
         position = haystack.indexOf(needle);
