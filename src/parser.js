@@ -37,7 +37,8 @@ Parser.prototype.parseRequest = function (request) {
         line = lines.pop().trim();
         if (line !== '') {
             this.parseLine(line);
-        } else {
+        } else if (this.parsedRequestLine()) {
+            // The first empty line after the header section indicates the body.
             this.parseBody(lines);
             break;
         }
@@ -182,15 +183,12 @@ Parser.prototype.parseHeaderLine = function (line) {
 Parser.prototype.setConfiguration = function (configuration) {
     var userConfiguration = configuration || {};
     this.configuration = {
-        encoding: 'utf8',
-        eol: '\r\n'
+        eol: '\n'
     };
-    var properties = Object.keys(this.configuration);
+    var properties = Object.keys(userConfiguration);
     for (var i = 0; i < properties.length; ++i) {
         var property = properties[i];
-        if (userConfiguration[property]) {
-            this.configuration[property] = userConfiguration[property];
-        }
+        this.configuration[property] = userConfiguration[property];
     }
 };
 
@@ -209,8 +207,10 @@ Parser.prototype.parseBody = function (lines) {
         } else {
             this.result.body = body;
         }
-        // TODO Do not override content-length header if set explicitly
-        this.result.options.headers['content-length'] = '' + body.length;
+        // Do not override content-length header if set explicitly
+        if (!valueForCaseInsensitiveKey(this.result.options.headers, 'content-length')) {
+            this.result.options.headers['Content-length'] = '' + body.length;
+        }
     }
 };
 
@@ -236,17 +236,14 @@ function FormParser(configuration) {
 FormParser.prototype.setConfiguration = function (configuration) {
     var userConfiguration = configuration;
     this.configuration = {
-        encoding: 'utf8',
         eol: '\r\n',
         multilineStart: '"""',
         multilineEnd: '"""'
     };
-    var properties = Object.keys(this.configuration);
+    var properties = Object.keys(userConfiguration);
     for (var i = 0; i < properties.length; ++i) {
         var property = properties[i];
-        if (userConfiguration[property]) {
-            this.configuration[property] = userConfiguration[property];
-        }
+        this.configuration[property] = userConfiguration[property];
     }
 };
 
@@ -289,7 +286,7 @@ FormParser.prototype.parseField = function (line) {
         if (pos !== -1) {
             value = value.slice(pos + this.configuration.multilineStart.length);
             // Check if this value also ends a multiline field.
-            pos = value.indexOf(this.configuration.multilineStart);
+            pos = value.indexOf(this.configuration.multilineEnd);
             if (pos !== -1) {
                 // The entire multiline value is on one line.
                 value = value.slice(0, pos);
@@ -306,14 +303,14 @@ FormParser.prototype.parseField = function (line) {
 };
 
 FormParser.prototype.parseMultilineField = function (line) {
-    if (this.isEndIfMultilineField(line)) {
+    if (this.isEndOfMultilineField(line)) {
         this.completeMultilineField(line);
     } else {
         this.continueMultilineField(line);
     }
 };
 
-FormParser.prototype.isEndIfMultilineField = function (line) {
+FormParser.prototype.isEndOfMultilineField = function (line) {
     return line.indexOf(this.configuration.multilineEnd) !== -1;
 };
 

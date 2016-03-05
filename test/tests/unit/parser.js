@@ -4,9 +4,7 @@ var url = require('url');
 
 var expect = require('chai').expect;
 
-var eol = '\r\n',
-    encoding = 'utf-8';
-
+var eol = '\n';
 var Parser = require('../../../src/parser');
 
 describe('Parser', function () {
@@ -15,7 +13,6 @@ describe('Parser', function () {
 
     beforeEach(function () {
         parser = new Parser({
-            encoding: encoding,
             eol: eol
         });
     });
@@ -57,7 +54,7 @@ describe('Parser', function () {
             },
             {
                 description: 'Blank lines at start',
-                request: ['', '   ', 'PUT /hamsters'].join('\n'),
+                request: ['', '   ', 'PUT /hamsters'].join(eol),
                 method: 'PUT',
                 protocol: null,
                 auth: null,
@@ -146,6 +143,7 @@ describe('Parser', function () {
             });
         });
     });
+
     context('When parsing headers, query, and options', function () {
         var request = [
             'POST http://mydomain.com/cats?cat=molly&dog=bear',
@@ -158,6 +156,7 @@ describe('Parser', function () {
             'Content-type: application/json',
             '  # This is a pound-comment: not a header',
             '  // This is a slash-comment= not a header',
+            'Incomplete-header',
             '@flag',
             '@followRedirects: true',
             '@redirectStatusCodes: [301, 302]',
@@ -169,19 +168,25 @@ describe('Parser', function () {
             ''
         ].join(eol);
 
-        it('Parses headers', function () {
-            var expectedHeaders = {
-                    'Host': 'localhost',
-                    'Cache-control': 'no-cache',
-                    'Content-type': 'application/json'
-                },
-                headers = Object.keys(expectedHeaders),
-                result = parser.parse(request),
-                header, i, u;
-            for (i = 0, u = headers.length; i < u; ++i) {
-                header = headers[i];
-                expect(result.options.headers[header]).to.equal(expectedHeaders[header]);
-            }
+        describe('Parses headers', function () {
+            it('Parses header with key and value', function () {
+                var expectedHeaders = {
+                        'Host': 'localhost',
+                        'Cache-control': 'no-cache',
+                        'Content-type': 'application/json'
+                    },
+                    headers = Object.keys(expectedHeaders),
+                    result = parser.parse(request),
+                    header, i, u;
+                for (i = 0, u = headers.length; i < u; ++i) {
+                    header = headers[i];
+                    expect(result.options.headers[header]).to.equal(expectedHeaders[header]);
+                }
+            });
+            it('Does not parses header without :', function () {
+                var result = parser.parse(request);
+                expect(result.options.headers['Incomplete-header']).not.to.be.defined;
+            });
         });
 
         describe('Parses query', function () {
@@ -272,6 +277,26 @@ describe('Parser', function () {
             var result;
             beforeEach(function () {
                 result = {};
+            });
+            describe('Normalizes protocol', function () {
+                function parseWithProtocol(protocol) {
+                    return parser.parse([
+                        'GET /',
+                        '@protocol: ' + protocol
+                    ].join(eol));
+                }
+                it('Normalizes "http" to "http:"', function () {
+                    result = parseWithProtocol('http');
+                    expect(result.options.protocol).to.equal('http:');
+                });
+                it('Normalizes "https" to "https:"', function () {
+                    result = parseWithProtocol('https');
+                    expect(result.options.protocol).to.equal('https:');
+                });
+                it('Normalizes invalid protocol to "http:"', function () {
+                    result = parseWithProtocol('gopher');
+                    expect(result.options.protocol).to.equal('http:');
+                });
             });
             context('When the request line specifies a host', function () {
                 context('And request does not contains options or a Host header', function () {
@@ -396,8 +421,8 @@ describe('Parser', function () {
         });
     });
 
-    describe('Body', function () {
-        describe('With body', function () {
+    context('When parsing body', function () {
+        context('With body', function () {
             var result;
             beforeEach(function () {
                 var request = [
@@ -413,11 +438,30 @@ describe('Parser', function () {
                 expect(result.body).to.equal('{"name": "molly"}');
             });
             it('Adds content-length header', function () {
-                expect(result.options.headers['content-length']).to.equal('17');
+                expect(result.options.headers['Content-length']).to.equal('17');
             });
         });
-
-        describe('Without body', function () {
+        context('With body and explicit Content-length header', function () {
+            var result;
+            beforeEach(function () {
+                var request = [
+                    'POST http://mydomain.com/cats',
+                    'Host: localhost',
+                    'Content-type: application/json',
+                    'Content-length: 5',
+                    '',
+                    '{"name": "molly"}'
+                ].join(eol);
+                result = parser.parse(request);
+            });
+            it('Provides body as string', function () {
+                expect(result.body).to.equal('{"name": "molly"}');
+            });
+            it('Does not replace content-length header', function () {
+                expect(result.options.headers['Content-length']).to.equal('5');
+            });
+        });
+        context('Without body', function () {
             var result;
             beforeEach(function () {
                 var request = [
@@ -460,6 +504,7 @@ describe('Parser', function () {
                     'cat=molly',
                     ' dog: bear',
                     'guineaPigs: Clyde and Claude',
+                    'noField',
                     '  # comment: Ignore this pound-comment',
                     '  // comment: Ignore this slash-comment',
                     '    quoted = """This is the value""" This is ignored.',
@@ -484,6 +529,9 @@ describe('Parser', function () {
                 });
                 it('Uses : separator', function () {
                     expect(result.body).to.contain('dog=bear');
+                });
+                it('Skips fields without = or :', function () {
+                    expect(result.body).not.to.contains('noField');
                 });
                 it('Percent encodes values', function () {
                     expect(result.body).to.contain('guineaPigs=Clyde%20and%20Claude');
@@ -517,4 +565,79 @@ describe('Parser', function () {
             });
         });
     });
+
+    describe('Configuration', function () {
+        function getRequest(eol) {
+            return [
+                'GET /path',
+                'Host: myhost.com',
+                '',
+                'Request body'
+            ].join(eol);
+        }
+        function getFormRequest(eol, start, end) {
+            return [
+                'GET /path',
+                'Host: myhost.com',
+                '@form',
+                '',
+                'single: ' + start + 'Single' + end,
+                'multi: ' + start + 'Multiline',
+                'field' + end
+            ].join(eol);
+        }
+        context('When user does not provide configuration', function () {
+            var eol = '\n';
+            var start = '"""';
+            var end = '""""';
+            var parser;
+            beforeEach(function() {
+                parser = new Parser();
+            });
+            it('Parses with default eol indicator', function () {
+                var result = parser.parse(getRequest(eol));
+                expect(result.body).to.equal('Request body');
+            });
+            it('Parses with default multiline form quotes (single line)', function () {
+                var result = parser.parse(getFormRequest(eol, start, end));
+                var form = 'single=Single';
+                expect(result.body).to.contain(form);
+            });
+            it('Parses with default multiline form quotes (multiple lines)', function () {
+                var result = parser.parse(getFormRequest(eol, start, end));
+                var value = 'Multiline' + eol + 'field';
+                var form = 'multi=' + encodeURIComponent(value);
+                expect(result.body).to.contain(form);
+            });
+        });
+        context('When user provides configuration', function () {
+            var eol = '\r\n';
+            var start = '<<<<<';
+            var end = '>>>>>';
+            var parser;
+            beforeEach(function() {
+                parser = new Parser({
+                    eol: eol,
+                    multilineStart: start,
+                    multilineEnd: end
+                });
+            });
+            it('Parses with custom eol character', function () {
+                var result = parser.parse(getRequest(eol));
+                expect(result.body).to.equal('Request body');
+            });
+            it('Parses with default multiline form quotes (single line)', function () {
+                var result = parser.parse(getFormRequest(eol, start, end));
+                var form = 'single=Single';
+                expect(result.body).to.contain(form);
+            });
+            it('Parses with default multiline form quotes', function () {
+                var result = parser.parse(getFormRequest(eol, start, end));
+                var value = 'Multiline' + eol + 'field';
+                var form = 'multi=' + encodeURIComponent(value);
+                expect(result.body).to.contain(form);
+            });
+        });
+    });
+
 });
