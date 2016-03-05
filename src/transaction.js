@@ -31,11 +31,8 @@ Transaction.prototype.send = function () {
 };
 
 Transaction.prototype.sendRequest = function (requestOptions, body) {
-    var _this = this;
     this.currentLocation = url.format(requestOptions);
-    var request = http.request(requestOptions, function (response) {
-        _this.onResponse(response);
-    });
+    var request = this.createClientRequest(requestOptions);
     this.requests.push(this.requestFormatter.format(request, body));
     if (body) {
         var bodyStream = stringToStream(body.trim());
@@ -43,6 +40,31 @@ Transaction.prototype.sendRequest = function (requestOptions, body) {
     } else {
         request.end();
     }
+};
+
+Transaction.prototype.createClientRequest = function (options) {
+    if (options.protocol === 'https:') {
+        return this.createHttpsRequest(options);
+    } else {
+        return this.createHttpRequest(options);
+    }
+};
+
+Transaction.prototype.createHttpRequest = function (options) {
+    var _this = this;
+    return http.request(options, function (response) {
+        _this.onResponse(response);
+    });
+};
+
+Transaction.prototype.createHttpsRequest = function (options) {
+    var _this = this;
+    // Allow self-signed certificates since the primary use case for RESTer
+    // is testing.
+    options.rejectUnauthorized = false;
+    return https.request(options, function (response) {
+        _this.onResponse(response);
+    });
 };
 
 Transaction.prototype.onResponse = function (response) {

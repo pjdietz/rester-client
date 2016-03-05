@@ -8,7 +8,7 @@ var chai = require('chai'),
     sinon = require('sinon'),
     sinonChai = require('sinon-chai');
 
-var createServer = require('../doubles/server').createServer;
+var mockServers = require('../doubles/server');
 
 var Transaction = require('../../src/transaction'),
     RedirectError = require('../../src/errors').RedirectError;
@@ -17,16 +17,20 @@ chai.use(sinonChai);
 
 describe('Transaction', function () {
 
-    var port = 8761,
-        server,
+    var httpPort = 8761,
+        httpsPort = 8762,
+        httpServer,
+        httpsServer,
         transaction;
 
     before(function () {
-        server = createServer(port);
+        httpServer = mockServers.createHttpServer(httpPort);
+        httpsServer = mockServers.createHttpsServer(httpsPort);
     });
 
     after(function () {
-        server.close();
+        httpServer = undefined;
+        httpsServer = undefined;
     });
 
     afterEach(function () {
@@ -61,7 +65,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/hello'
                 });
@@ -90,7 +94,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/2'
                 }, undefined, {
@@ -123,7 +127,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/2'
                 }, undefined, {
@@ -156,7 +160,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/5'
                 }, undefined, {
@@ -189,7 +193,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/5'
                 }, undefined, {
@@ -222,7 +226,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/2'
                 }, undefined, {
@@ -258,7 +262,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/hello'
                 }, undefined, {});
@@ -270,7 +274,7 @@ describe('Transaction', function () {
                     expect(transaction.getRequest()).to.contain('GET /hello HTTP/1.1');
                 });
                 it('Contains headers', function () {
-                    expect(transaction.getRequest()).to.contain('Host: localhost:' + port);
+                    expect(transaction.getRequest()).to.contain('Host: localhost:' + httpPort);
                 });
             });
             describe('Response returned by getResponse()', function () {
@@ -290,7 +294,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'GET',
                     path: '/redirect/302/2'
                 }, undefined, {
@@ -346,7 +350,7 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: port,
+                    port: httpPort,
                     method: 'POST',
                     path: '/echo'
                 }, body, {});
@@ -356,6 +360,54 @@ describe('Transaction', function () {
             it('Sends request body to server', function () {
                 expect(transaction.getResponse()).to.contain(body);
             });
+        });
+    });
+    describe('Protocol', function () {
+        it('Makes HTTP requests', function (done) {
+            transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: httpPort,
+                    method: 'GET',
+                    path: '/hello'
+                }, undefined, {});
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contain('Hello, world!');
+                done();
+            });
+            transaction.send();
+        });
+        it('Makes HTTPS requests', function (done) {
+            transaction = new Transaction({
+                protocol: 'https:',
+                hostname: 'localhost',
+                port: httpsPort,
+                method: 'GET',
+                path: '/hello'
+            }, undefined, {});
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contain('Hello, secret robot Internet!');
+                done();
+            });
+            transaction.send();
+        });
+        it('Redirects from one protocol to another', function (done) {
+            transaction = new Transaction({
+                protocol: 'http:',
+                hostname: 'localhost',
+                port: httpPort,
+                method: 'GET',
+                path: '/redirect-to/' + encodeURIComponent('https://localhost:' + httpsPort)
+            }, undefined, {
+                followRedirects: true,
+                redirectLimit: 10,
+                redirectStatusCodes: [301, 302]
+            });
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contain('Hello, secret robot Internet!');
+                done();
+            });
+            transaction.send();
         });
     });
 });

@@ -3,7 +3,7 @@
 var chai = require('chai'),
     expect = chai.expect;
 
-var createServer = require('../doubles/server').createServer;
+var createServer = require('../doubles/server').createHttpServer;
 
 var rester = require('../../src');
 

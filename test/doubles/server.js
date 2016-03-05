@@ -1,8 +1,11 @@
 'use strict';
 
-var http = require('http');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const path = require('path');
 
-function createServer(port) {
+function createHttpServer(port) {
     var server;
     server = http.createServer();
     server.on('request', function(request, response) {
@@ -27,11 +30,18 @@ function createServer(port) {
                 response.setHeader('Location', location);
                 response.end();
             })();
+        } else if (request.url.startsWith('/redirect-to/')) {
+            // Redirect to an arbitrary URI
+            var location = decodeURIComponent(
+                request.url.slice('/redirect-to/'.length));
+            response.statusCode = 302;
+            response.setHeader('Location', location);
+            response.end();
         } else if (request.url === '/echo') {
             // Response body will contain Request body
             response.statusCode = 201;
             if (request.headers['content-type']) {
-                response.setHeader('Content-Type', request.headers['content-type']);                
+                response.setHeader('Content-Type', request.headers['content-type']);
             }
             request.pipe(response);
         } else {
@@ -45,6 +55,23 @@ function createServer(port) {
     return server;
 }
 
+function createHttpsServer(port) {
+    // Create and start an HTTPS server.
+    const httpsServer = https.createServer({
+        key: fs.readFileSync(path.resolve(__dirname, "https/key.pem")),
+        cert: fs.readFileSync(path.resolve(__dirname, "https/cert.pem"))
+    });
+    httpsServer.on("request", function (request, response) {
+        // GET /: Hello, world!
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "text/plain");
+        response.write("Hello, secret robot Internet!");
+        response.end();
+    });
+    httpsServer.listen(port);
+}
+
 module.exports = {
-    createServer: createServer
+    createHttpServer: createHttpServer,
+    createHttpsServer: createHttpsServer
 };
