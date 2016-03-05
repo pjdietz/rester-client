@@ -1,15 +1,13 @@
 'use strict';
 
-var http = require('http');
-
 var chai = require('chai'),
     expect = chai.expect;
 
-var createServer = require('../../doubles/server').createServer;
+var createServer = require('../doubles/server').createServer;
 
-var rester = require('../../../src');
+var rester = require('../../src');
 
-describe('Acceptance', function () {
+describe('Client', function () {
 
     var port = 8761,
         server;

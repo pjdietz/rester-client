@@ -5,7 +5,7 @@ var url = require('url');
 var expect = require('chai').expect;
 
 var eol = '\n';
-var Parser = require('../../../src/parser');
+var Parser = require('../../src/parser');
 
 describe('Parser', function () {
 

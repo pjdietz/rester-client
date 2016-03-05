@@ -8,10 +8,10 @@ var chai = require('chai'),
     sinon = require('sinon'),
     sinonChai = require('sinon-chai');
 
-var createServer = require('../../doubles/server').createServer;
+var createServer = require('../doubles/server').createServer;
 
-var Transaction = require('../../../src/transaction'),
-    RedirectError = require('../../../src/errors').RedirectError;
+var Transaction = require('../../src/transaction'),
+    RedirectError = require('../../src/errors').RedirectError;
 
 chai.use(sinonChai);
 
