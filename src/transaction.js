@@ -33,6 +33,9 @@ Transaction.prototype.send = function () {
 Transaction.prototype.sendRequest = function (requestOptions, body) {
     this.currentLocation = url.format(requestOptions);
     var request = this.createClientRequest(requestOptions);
+    request.on('error', (err) => {
+        this.emit('error', err);
+    });
     this.requests.push(this.requestFormatter.format(request, body));
     if (body) {
         var bodyStream = stringToStream(body.trim());

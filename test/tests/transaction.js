@@ -250,9 +250,38 @@ describe('Transaction', function () {
             it('Does not emits "end"', function () {
                 expect(endListener).not.called;
             });
-            it('Emit "error"', function () {
+            it('Emits "error"', function () {
                 expect(errorListener).calledWith(
                     sinon.match.instanceOf(RedirectError));
+            });
+        });
+        context('Request with error', function () {
+            beforeEach(function (done) {
+                transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: httpPort + 7,
+                    method: 'GET',
+                    path: '/'
+                });
+                addListeners();
+                transaction.send();
+                setTimeout(done, 10);
+            });
+            it('Emits "request" once', function () {
+                expect(requestListener).calledOnce;
+            });
+            it('Does not emit "response"', function () {
+                expect(responseListener).not.called;
+            });
+            it('Does not emit "redirect"', function () {
+                expect(redirectListener).not.called;
+            });
+            it('Does not emits "end"', function () {
+                expect(endListener).not.called;
+            });
+            it('Emits "error"', function () {
+                expect(errorListener).called;
             });
         });
     });
