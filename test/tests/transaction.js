@@ -1,27 +1,27 @@
 'use strict';
 
-var http = require('http'),
-    stream = require('stream');
-
-var chai = require('chai'),
-    expect = chai.expect,
-    sinon = require('sinon'),
-    sinonChai = require('sinon-chai');
-
-var mockServers = require('../doubles/server');
-
-var Transaction = require('../../src/transaction'),
-    RedirectError = require('../../src/errors').RedirectError;
+const http = require('http');
+const stream = require('stream');
+const chai = require('chai');
+const expect = chai.expect;
+const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
+const mockServers = require('../doubles/server');
+const Transaction = require('../../src/transaction');
+const RedirectError = require('../../src/errors').RedirectError;
 
 chai.use(sinonChai);
 
+// -----------------------------------------------------------------------------
+
 describe('Transaction', function () {
 
-    var httpPort = 8761,
-        httpsPort = 8762,
-        httpServer,
-        httpsServer,
-        transaction;
+    const httpPort = 8761;
+    const httpsPort = 8762;
+
+    let httpServer;
+    let httpsServer;
+    let transaction;
 
     before(function () {
         httpServer = mockServers.createHttpServer(httpPort);
@@ -40,11 +40,13 @@ describe('Transaction', function () {
     // -------------------------------------------------------------------------
 
     describe('Events', function () {
-        var requestListener,
-            redirectListener,
-            responseListener,
-            endListener,
-            errorListener;
+
+        let requestListener;
+        let redirectListener;
+        let responseListener;
+        let endListener;
+        let errorListener;
+
         beforeEach(function () {
             requestListener = sinon.spy();
             redirectListener = sinon.spy();
@@ -52,6 +54,7 @@ describe('Transaction', function () {
             endListener = sinon.spy();
             errorListener = sinon.spy();
         });
+
         function addListeners() {
             transaction.on('request', requestListener);
             transaction.on('redirect', redirectListener);
@@ -342,12 +345,12 @@ describe('Transaction', function () {
                     expect(transaction.getRequest()).to.contain('GET /redirect/302/2');
                 });
                 it('Requests array includes initial request followed by redirect requests', function () {
-                    var expected = [
+                    const expected = [
                         'GET /redirect/302/2',
                         'GET /redirect/302/1',
                         'GET /hello'
                     ];
-                    for (var i = 0; i < expected.length; ++i) {
+                    for (let i = 0; i < expected.length; ++i) {
                         expect(transaction.requests[i]).to.contain(expected[i]);
                     }
                 });
@@ -361,21 +364,20 @@ describe('Transaction', function () {
                     expect(transaction.getResponse()).to.include('Hello, world!');
                 });
                 it('Responses array includes each response in order received', function () {
-                    var expected = [
+                    const expected = [
                         'HTTP/1.1 302 Found',
                         'HTTP/1.1 302 Found',
                         'HTTP/1.1 200 OK'
                     ];
-                    for (var i = 0; i < expected.length; ++i) {
+                    for (let i = 0; i < expected.length; ++i) {
                         expect(transaction.responses[i]).to.contain(expected[i]);
                     }
                 });
             });
         });
         context('When request contains a body', function () {
-            var body;
+            const body = 'This is the request body';
             beforeEach(function (done) {
-                body = 'This is the request body';
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',

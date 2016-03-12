@@ -1,20 +1,21 @@
 'use strict';
 
-var Parser = require('./parser'),
-    Transaction = require('./Transaction');
+const Parser = require('./parser');
+const Transaction = require('./Transaction');
 
-function Client() {
-    this.parser = new Parser();
+class Client {
+    constructor() {
+        this.parser = new Parser();
+    }
+    request(requestString) {
+        let opts = this.parser.parse(requestString);
+        return new Transaction(
+            opts.options,
+            opts.body,
+            opts.configuration
+        )
+    }
 }
-
-Client.prototype.request = function (requestString) {
-    var opts = this.parser.parse(requestString);
-    return new Transaction(
-        opts.options,
-        opts.body,
-        opts.configuration
-    );
-};
 
 // -----------------------------------------------------------------------------
 
