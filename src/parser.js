@@ -258,7 +258,7 @@ class FormParser {
         let lines = body.split(this.configuration.eol);
         lines.reverse();
         while (lines.length > 0) {
-            let line = lines.pop().trim();
+            let line = lines.pop();
             this.parseLine(line);
         }
         return querystring.stringify(this.fields);
@@ -276,7 +276,9 @@ class FormParser {
         return beginsWith(line, ['#', '//']);
     }
 
-    parseField(line) {
+    parseField(originalLine) {
+        // Trim left-side only as the right is needed to multiline fields.
+        let line = originalLine.trimLeft();
         if (this.isCommentLine(line)) {
             return; // no-op
         }

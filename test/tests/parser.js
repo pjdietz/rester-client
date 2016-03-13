@@ -491,35 +491,38 @@ describe('Parser', function () {
         // ---------------------------------------------------------------------
 
         describe('Forms', function () {
-            beforeEach(function () {
-                const request = [
-                    'POST http://mydomain.com/cats',
-                    'Host: localhost',
-                    '@form',
-                    '',
-                    'cat=molly',
-                    ' dog: bear',
-                    'guineaPigs: Clyde and Claude',
-                    'noField',
-                    '  # comment: Ignore this pound-comment',
-                    '  // comment: Ignore this slash-comment',
-                    '    quoted = """This is the value""" This is ignored.',
-                    'comments: """Dear Life Cereal, Where do you get off?',
-                    'Part of a balanced breakfast and delicious? Who do you think',
-                    'you are? By now, you may have guessed I\'m speaking',
-                    'ironically and have nothing but good things to say about what',
-                    'you do. Life Cereal, do not change a thing. Signed: Peter',
-                    'Griffin. Dictated but not read."""'
-                ].join(eol);
-                result = parser.parse(request);
-            });
+            const lines = [
+                'POST http://mydomain.com/cats',
+                'Host: localhost',
+                '@form',
+                '',
+                'cat=molly',
+                ' dog: bear',
+                'guineaPigs: Clyde and Claude',
+                'noField',
+                '  # comment: Ignore this pound-comment',
+                '  // comment: Ignore this slash-comment',
+                '    quoted = """This is the value""" This is ignored.',
+                'comments: """Dear Life Cereal, Where do you get off?',
+                'Part of a balanced breakfast and delicious? Who do you think',
+                'you are? By now, you may have guessed I\'m speaking',
+                'ironically and have nothing but good things to say about what',
+                'you do. Life Cereal, do not change a thing. Signed: Peter',
+                'Griffin. Dictated but not read."""'
+            ];
 
             it('Adds Content-type header when @form option is true', function () {
+                let request = lines.join('\n');
+                result = parser.parse(request);
                 expect(result.options.headers['Content-type'].toLowerCase())
                     .to.equal('application/x-www-form-urlencoded');
             });
 
             describe('Encodes form fields when @form option is true', function () {
+                beforeEach(function () {
+                    let request = lines.join('\n');
+                    result = parser.parse(request);
+                });
                 it('Uses = separator', function () {
                     expect(result.body).to.contain('cat=molly');
                 });
@@ -551,7 +554,12 @@ describe('Parser', function () {
                     expect(result.body).to.contain(expected);
                 });
             });
+
             describe('Comments', function () {
+                beforeEach(function () {
+                    let request = lines.join('\n');
+                    result = parser.parse(request);
+                });
                 it('Skips lines beginning with #', function () {
                     expect(result.body).to.not.contain('pound-comment');
                 });
@@ -559,7 +567,49 @@ describe('Parser', function () {
                     expect(result.body).to.not.contain('slash-comment');
                 });
             });
+
+            describe('Line endings', function () {
+                const eols = ['\n', '\r\n'];
+                context('When parsing entire body', function () {
+                    const lines = [
+                        'POST /multiline HTTP/1.1',
+                        '',
+                        'This is the first line.',
+                        'This is the second line.'
+                    ];
+                    eols.forEach(eol => {
+                        it(`Preserves lines terminated by ${JSON.stringify(eol)}`, function () {
+                            let request = lines.join(eol);
+                            let result = parser.parse(request);
+                            let expected = lines.slice(2).join(eol);
+                            expect(result.body).to.equal(expected);
+                        });
+                    });
+                });
+                context('When parsing multiline form fields', function () {
+                    const lines = [
+                        'POST /form',
+                        '@form',
+                        '',
+                        'field: """This is the first line',
+                        'This is the second line."""'
+                    ];
+                    const expectedLines = [
+                        'This is the first line',
+                        'This is the second line.'
+                    ];
+                    eols.forEach((eol) => {
+                        it(`Preserves lines terminated by ${JSON.stringify(eol)}`, function () {
+                            let request = lines.join(eol);
+                            let result = parser.parse(request);
+                            let expected = 'field=' + encodeURIComponent(expectedLines.join(eol));
+                            expect(result.body).to.equal(expected);
+                        });
+                    });
+                });
+            });
         });
+
     });
 
     describe('Configuration', function () {
