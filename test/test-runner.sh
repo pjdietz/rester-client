@@ -22,6 +22,7 @@ usage()
 
 # Defaults
 coverage=false
+tap=false
 testPath=
 
 # Read Command Line Arguments
@@ -33,6 +34,9 @@ while [ "$1" != "" ]; do
     -c|--coverage)
       coverage=true
       ;;
+    -t|--tap)
+      tap=true
+      ;;
     -*)
       usage
       ;;
@@ -43,6 +47,11 @@ while [ "$1" != "" ]; do
   shift
 done
 
+reporter=
+if [ "$tap" = true ] ; then
+  reporter="--reporter mocha-tap-reporter"
+fi
+
 if [ "$coverage" = true ] ; then
 
   # Run with code coverage.
@@ -52,12 +61,12 @@ if [ "$coverage" = true ] ; then
     if [ ! -e "$testPath" ] ; then
       testPath="$testRoot"/"$testPath"
     fi
-    "$istanbul" cover "$_mocha" -- --recursive "$testPath"
+    "$istanbul" cover "$_mocha" -- --recursive "$testPath" ${reporter} && "$istanbul" report clover
   else
     # All tests
-    "$istanbul" cover "$_mocha" -- --recursive "$testRoot"
+    "$istanbul" cover "$_mocha" -- --recursive "$testRoot" ${reporter} && "$istanbul" report clover
   fi
-  
+
 else
 
   # Run without code coverage.
@@ -67,10 +76,10 @@ else
     if [ ! -e "$testPath" ] ; then
       testPath="$testRoot"/"$testPath"
     fi
-    "$mocha" "$testPath"
+    "$mocha" "$testPath" ${reporter}
   else
     # All tests
-    "$mocha" --recursive "$testRoot"
+    "$mocha" --recursive "$testRoot" ${reporter}
   fi
 
 fi
