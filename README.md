@@ -1,4 +1,8 @@
-# RESTer
+# RESTer Client
+
+[![Travis](https://img.shields.io/travis/pjdietz/rester-client.svg?style=flat-square)](https://travis-ci.org/pjdietz/rester-client)
+[![Coveralls](https://img.shields.io/coveralls/pjdietz/rester-client.svg?style=flat-square)](https://coveralls.io/r/pjdietz/rester-client)
+
 
 RESTer is a library for making HTTP requests from a text file or string.
 
@@ -10,28 +14,17 @@ Run all tests:
 npm test
 ```
 
-Run all tests with coverage:
-
-```bash
-npm test -- -c
-npm test -- --coverage
-```
-
 Run a test or directory of tests:
 
 ```bash
-npm test -- [path to file or directory relative to test/]
+npm test -- [path to file or directory relative to test/tests]
 ```
 
-Run tests with code coverage:
+To run tests with code cover, include the `-c` or `--coverage` option.
 
 ```bash
 npm test -- -c [path]
 npm test -- --coverage [path]
 ```
 
-Running tests will generate a code coverage report. To view:
-
-```bash
-open coverage/lcov-report/index.html
-```
+The code coverage report will be created at `coverage/lcov-report/index.html`.
