@@ -10,14 +10,15 @@ const mockServers = require('../doubles/server');
 const Transaction = require('../../src/transaction');
 const RedirectError = require('../../src/errors').RedirectError;
 
+const delay     = process.env.TEST_WAIT || 10;
+const httpPort  = process.env.TEST_HTTP_PORT || 8761;
+const httpsPort = process.env.TEST_HTTPS_PORT || 8762;
+
 chai.use(sinonChai);
 
 // -----------------------------------------------------------------------------
 
 describe('Transaction', function () {
-
-    const httpPort = 8761;
-    const httpsPort = 8762;
 
     let httpServer;
     let httpsServer;
@@ -74,7 +75,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -107,7 +108,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -140,7 +141,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -173,7 +174,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -206,7 +207,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -239,7 +240,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;
@@ -263,13 +264,13 @@ describe('Transaction', function () {
                 transaction = new Transaction({
                     protocol: 'http:',
                     hostname: 'localhost',
-                    port: httpPort + 7,
+                    port: Number(httpPort) + 1,
                     method: 'GET',
                     path: '/'
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, 10);
+                setTimeout(done, delay)
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;

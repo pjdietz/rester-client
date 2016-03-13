@@ -5,9 +5,10 @@ const expect = chai.expect;
 const createServer = require('../doubles/server').createHttpServer;
 const rester = require('../../src');
 
+const port = process.env.TEST_HTTP_PORT || 8761;
+
 describe('Client', () => {
 
-    const port = 8761;
     let server;
 
     before(() => {
