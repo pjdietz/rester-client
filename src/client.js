@@ -1,7 +1,7 @@
 'use strict';
 
 const Parser = require('./parser');
-const Transaction = require('./Transaction');
+const Transaction = require('./transaction');
 
 class Client {
     constructor() {
