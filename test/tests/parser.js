@@ -12,9 +12,7 @@ describe('Parser', function () {
     let parser;
 
     beforeEach(function () {
-        parser = new Parser({
-            eol: eol
-        });
+        parser = new Parser();
     });
 
     context('When parsing request line', function () {

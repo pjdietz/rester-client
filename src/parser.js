@@ -32,7 +32,7 @@ class Parser {
     parseRequest(request) {
         // Split the string into an array of lines and reverse so that we can pop
         // lines off the stack and read them in order.
-        let lines = request.split(this.configuration.eol);
+        let lines = request.split('\n');
         let line;
         lines.reverse();
         while (lines.length > 0) {
@@ -184,9 +184,7 @@ class Parser {
 
     setConfiguration(configuration) {
         let userConfiguration = configuration || {};
-        this.configuration = {
-            eol: '\n'
-        };
+        this.configuration = {};
         let properties = Object.keys(userConfiguration);
         for (let i = 0; i < properties.length; ++i) {
             let property = properties[i];
@@ -200,7 +198,7 @@ class Parser {
 
     parseBody(lines) {
         lines.reverse();
-        let body = lines.join(this.configuration.eol).trim();
+        let body = lines.join('\n').trim();
         // Return the lines to the original order.
         if (body) {
             if (this.isForm()) {
@@ -241,7 +239,6 @@ class FormParser {
     setConfiguration(configuration) {
         let userConfiguration = configuration;
         this.configuration = {
-            eol: '\r\n',
             multilineStart: '"""',
             multilineEnd: '"""'
         };
@@ -255,7 +252,7 @@ class FormParser {
     parse(body) {
         // Split the string into an array of lines and reverse so that we can pop
         // lines off the stack and read them in order.
-        let lines = body.split(this.configuration.eol);
+        let lines = body.split('\n');
         lines.reverse();
         while (lines.length > 0) {
             let line = lines.pop();
@@ -322,13 +319,13 @@ class FormParser {
     }
 
     continueMultilineField(line) {
-        this.multilineValue += this.configuration.eol + line;
+        this.multilineValue += '\n' + line;
     }
 
     completeMultilineField(line) {
         let pos = line.indexOf(this.configuration.multilineEnd);
         this.fields[this.multilineKey] = this.multilineValue +
-            this.configuration.eol + line.slice(0, pos);
+            '\n' + line.slice(0, pos);
         this.multilineInProgress = false;
     }
 }
