@@ -61,10 +61,10 @@ if [ "$coverage" = true ] ; then
     if [ ! -e "$testPath" ] ; then
       testPath="$testRoot"/"$testPath"
     fi
-    "$istanbul" cover "$_mocha" -- --recursive "$testPath" ${reporter} && "$istanbul" report clover
+    "$istanbul" cover "$_mocha" -- --recursive "$testPath" ${reporter} ; "$istanbul" report clover
   else
     # All tests
-    "$istanbul" cover "$_mocha" -- --recursive "$testRoot" ${reporter} && "$istanbul" report clover
+    "$istanbul" cover "$_mocha" -- --recursive "$testRoot" ${reporter} ; "$istanbul" report clover
   fi
 
 else
