@@ -23,7 +23,7 @@ describe('Client', () => {
         context('When making a request', () => {
             let transaction;
             beforeEach((done) => {
-                let client = new rester.Client({});
+                let client = new rester.Client();
                 transaction = client.request(`GET http://localhost:${port}/hello`);
                 transaction.on('end', () => {
                     done();
@@ -72,6 +72,54 @@ describe('Client', () => {
                     expect(transaction.getResponse()).to.contain(body);
                 });
             });
+        });
+    });
+
+    describe('Configuration', function () {
+        it('Uses configuration for parsing', function (done) {
+            let client = new rester.Client({
+                multilineStart: '<<<',
+                multilineEnd: '>>>'
+            });
+            let transaction = client.request(`
+                POST http://localhost:${port}/echo
+                @form
+
+                field: <<<value>>>
+                `);
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contains('field=value');
+                done();
+            });
+            transaction.send();
+        });
+        it('Uses configuration for transactions', function (done) {
+            let client = new rester.Client({
+                followRedirects: true,
+                redirectLimit: 10,
+                redirectStatusCodes: [301, 302]
+            });
+            let transaction = client.request(`GET http://localhost:${port}/redirect/302/2`);
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contains('HTTP/1.1 200 OK');
+                done();
+            });
+            transaction.send();
+        });
+        it('Parsed configuration overrides client configuration', function (done) {
+            let client = new rester.Client({
+                followRedirects: true,
+                redirectLimit: 10,
+                redirectStatusCodes: [301, 302]
+            });
+            let transaction = client.request(`
+                GET http://localhost:${port}/redirect/302/2
+                @followRedirects: false`);
+            transaction.on('end', () => {
+                expect(transaction.getResponse()).to.contains('HTTP/1.1 302 Found');
+                done();
+            });
+            transaction.send();
         });
     });
 });
