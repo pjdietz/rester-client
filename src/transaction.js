@@ -7,6 +7,8 @@ const stream = require('stream');
 const url = require('url');
 const RedirectError = require('./errors').RedirectError;
 
+// -----------------------------------------------------------------------------
+
 class Transaction extends EventEmitter {
 
     /**
@@ -108,6 +110,9 @@ class Transaction extends EventEmitter {
         let limit = this.configuration.redirectLimit;
         let resolved = this.getUrlFromCurrentLocation(response.headers.location);
         let request = url.parse(resolved);
+        if (this.requestOptions.method === 'HEAD') {
+            request.method = 'HEAD';
+        }
         this.redirectCount += 1;
         if (this.redirectCount > limit) {
             this.emit('error', new RedirectError(`Reached redirect limit of ${limit}`));
@@ -162,7 +167,6 @@ class RequestFormatter extends MessageFormatter {
     }
 }
 
-
 // -----------------------------------------------------------------------------
 
 class ResponseFormatter extends MessageFormatter {
@@ -182,7 +186,6 @@ class ResponseFormatter extends MessageFormatter {
         return headerLines;
     }
 }
-
 
 // -----------------------------------------------------------------------------
 

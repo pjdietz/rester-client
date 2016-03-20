@@ -442,4 +442,46 @@ describe('Transaction', function () {
             transaction.send();
         });
     });
+    describe('Redirect method', function () {
+        context('When original request method is not HEAD', function () {
+            beforeEach(function (done) {
+                transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: httpPort,
+                    method: 'GET',
+                    path: '/redirect/302/2'
+                }, undefined, {
+                    followRedirects: true,
+                    redirectLimit: 10,
+                    redirectStatusCodes: [301, 302]
+                });
+                transaction.on('end', done);
+                transaction.send();
+            });
+            it('Makes redirect requests as GET requests', function () {
+                expect(transaction.requests[1]).to.match(/^GET/);
+            });
+        });
+        context('When original request method is HEAD', function () {
+            beforeEach(function (done) {
+                transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: httpPort,
+                    method: 'HEAD',
+                    path: '/redirect/302/2'
+                }, undefined, {
+                    followRedirects: true,
+                    redirectLimit: 10,
+                    redirectStatusCodes: [301, 302]
+                });
+                transaction.on('end', done);
+                transaction.send();
+            });
+            it('Makes redirect requests as HEAD requests', function () {
+                expect(transaction.requests[1]).to.match(/^HEAD/);
+            });
+        });
+    });
 });
