@@ -71,7 +71,7 @@ describe('Transaction', function () {
                     hostname: 'localhost',
                     port: httpPort,
                     method: 'GET',
-                    path: '/hello'
+                    path: '/hello?query'
                 });
                 addListeners();
                 transaction.send();
@@ -223,40 +223,6 @@ describe('Transaction', function () {
             });
             it('Does not emit "error"', function () {
                 expect(errorListener).not.called;
-            });
-        });
-        context('Request exceeding redirect limit', function () {
-            beforeEach(function (done) {
-                transaction = new Transaction({
-                    protocol: 'http:',
-                    hostname: 'localhost',
-                    port: httpPort,
-                    method: 'GET',
-                    path: '/redirect/302/2'
-                }, undefined, {
-                    followRedirects: true,
-                    redirectLimit: 1,
-                    redirectStatusCodes: [301, 302]
-                });
-                addListeners();
-                transaction.send();
-                setTimeout(done, delay)
-            });
-            it('Emits "request" once', function () {
-                expect(requestListener).calledOnce;
-            });
-            it('Emits "response" for each response', function () {
-                expect(responseListener).calledTwice;
-            });
-            it('Emits "redirect" once for each allowed redirect', function () {
-                expect(redirectListener).calledOnce;
-            });
-            it('Does not emits "end"', function () {
-                expect(endListener).not.called;
-            });
-            it('Emits "error"', function () {
-                expect(errorListener).calledWith(
-                    sinon.match.instanceOf(RedirectError));
             });
         });
         context('Request with redirect loop', function () {
