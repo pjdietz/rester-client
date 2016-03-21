@@ -259,6 +259,40 @@ describe('Transaction', function () {
                     sinon.match.instanceOf(RedirectError));
             });
         });
+        context('Request with redirect loop', function () {
+            beforeEach(function (done) {
+                transaction = new Transaction({
+                    protocol: 'http:',
+                    hostname: 'localhost',
+                    port: httpPort,
+                    method: 'HEAD',
+                    path: '/redirect-loop/foo'
+                }, undefined, {
+                    followRedirects: true,
+                    redirectLimit: 10,
+                    redirectStatusCodes: [301, 302]
+                });
+                addListeners();
+                transaction.send();
+                setTimeout(done, delay)
+            });
+            it('Emits "request" once', function () {
+                expect(requestListener).calledOnce;
+            });
+            it('Emits "response" for each response', function () {
+                expect(responseListener).calledTwice;
+            });
+            it('Emits "redirect" once for each allowed redirect', function () {
+                expect(redirectListener).calledOnce;
+            });
+            it('Does not emits "end"', function () {
+                expect(endListener).not.called;
+            });
+            it('Emits "error"', function () {
+                expect(errorListener).calledWith(
+                    sinon.match.instanceOf(RedirectError));
+            });
+        });
         context('Request with error', function () {
             beforeEach(function (done) {
                 transaction = new Transaction({

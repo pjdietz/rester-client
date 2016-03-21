@@ -27,6 +27,7 @@ class Transaction extends EventEmitter {
         this.responseFormatter = new ResponseFormatter();
         this.redirectCount = 0;
         this.currentLocation = null;
+        this.history = [];
     }
 
     send() {
@@ -35,7 +36,7 @@ class Transaction extends EventEmitter {
     }
 
     sendRequest(requestOptions, body) {
-        this.currentLocation = url.format(requestOptions);
+        this.storeToHistory(requestOptions);
         let request = this.createClientRequest(requestOptions);
         request.on('error', (err) => {
             this.emit('error', err);
@@ -47,6 +48,19 @@ class Transaction extends EventEmitter {
         } else {
             request.end();
         }
+    }
+
+    storeToHistory(requestOptions) {
+        let options = JSON.parse(JSON.stringify(requestOptions));
+        if (!options.pathname) {
+            let parts =  options.path.split('?');
+            options.pathname = parts[0];
+            if (parts.length > 1) {
+                options.search = parts[1];
+            }
+        }
+        this.currentLocation = url.format(options);
+        this.history.push(this.currentLocation);
     }
 
     createClientRequest(options) {
@@ -116,6 +130,10 @@ class Transaction extends EventEmitter {
         this.redirectCount += 1;
         if (this.redirectCount > limit) {
             this.emit('error', new RedirectError(`Reached redirect limit of ${limit}`));
+            return;
+        }
+        if (this.history.indexOf(resolved) > -1) {
+            this.emit('error', new RedirectError(`Redirect loop detected`));
             return;
         }
         this.sendRequest(request);

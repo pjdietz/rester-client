@@ -18,21 +18,29 @@ function createHttpServer(port) {
         } else if (request.url.startsWith('/redirect/')) {
             // Redirect the client from /redirect/{code}/{n} to
             // /redirect/{code}/{n-1}; If n = 1, redirects to /hello
-            (function () {
-                var parts, code, n, location = '/hello';
-                parts = request.url.slice(1).split('/');
-                code = parts[1];
-                n = parseInt(parts[2], 10);
-                if (n > 1) {
-                    location = '/redirect/' + code + '/' + (n - 1);
-                }
-                response.statusCode = code;
-                response.setHeader('Location', location);
-                response.end();
-            })();
+            let location = '/hello';
+            let parts = request.url.slice(1).split('/');
+            let code = parts[1];
+            let n = Number(parts[2]);
+            if (n > 1) {
+                location = '/redirect/' + code + '/' + (n - 1);
+            }
+            response.statusCode = code;
+            response.setHeader('Location', location);
+            response.end();
+        } else if (request.url.startsWith('/redirect-loop/')) {
+            // Redirect the client between /redirect-loop/foo to
+            // /redirect-loop/bar
+            let location = '/redirect-loop/foo';
+            if (request.url === '/redirect-loop/foo') {
+                location = '/redirect-loop/bar';
+            }
+            response.statusCode = 302;
+            response.setHeader('Location', location);
+            response.end();
         } else if (request.url.startsWith('/redirect-to/')) {
             // Redirect to an arbitrary URI
-            var location = decodeURIComponent(
+            let location = decodeURIComponent(
                 request.url.slice('/redirect-to/'.length));
             response.statusCode = 302;
             response.setHeader('Location', location);
