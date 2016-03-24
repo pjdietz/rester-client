@@ -75,6 +75,10 @@ class Parser {
     }
 
     parseRequestLine(line) {
+        // Skip comments
+        if (beginsWith(line, ['#', '//'])) {
+            return;
+        }
         const properties = [
             'protocol',
             'auth',

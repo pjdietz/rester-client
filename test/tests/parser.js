@@ -82,6 +82,21 @@ describe('Parser', function () {
                 hostname: 'mydomain.com',
                 port: null,
                 path: '/cats'
+            },
+            {
+                description: 'Skips comments',
+                request: [
+                    '// Comment',
+                    '  # Comment',
+                    'POST http://localhost/path'
+                ].join('\n'),
+                method: 'POST',
+                protocol: 'http:',
+                auth: null,
+                host: 'localhost',
+                hostname: 'localhost',
+                port: null,
+                path: '/path'
             }
         ];
         describe('Parses method', function () {
@@ -282,6 +297,7 @@ describe('Parser', function () {
                         '@protocol: ' + protocol
                     ].join(eol));
                 }
+
                 it('Normalizes "http" to "http:"', function () {
                     result = parseWithProtocol('http');
                     expect(result.options.protocol).to.equal('http:');
@@ -541,13 +557,13 @@ describe('Parser', function () {
                 });
                 it('Parses multi-line fields values', function () {
                     let expected = [
-                            'Dear Life Cereal, Where do you get off?',
-                            'Part of a balanced breakfast and delicious? Who do you think',
-                            'you are? By now, you may have guessed I\'m speaking',
-                            'ironically and have nothing but good things to say about what',
-                            'you do. Life Cereal, do not change a thing. Signed: Peter',
-                            'Griffin. Dictated but not read.'
-                        ].join(eol);
+                        'Dear Life Cereal, Where do you get off?',
+                        'Part of a balanced breakfast and delicious? Who do you think',
+                        'you are? By now, you may have guessed I\'m speaking',
+                        'ironically and have nothing but good things to say about what',
+                        'you do. Life Cereal, do not change a thing. Signed: Peter',
+                        'Griffin. Dictated but not read.'
+                    ].join(eol);
                     expected = 'comments=' + encodeURIComponent(expected);
                     expect(result.body).to.contain(expected);
                 });
@@ -619,6 +635,7 @@ describe('Parser', function () {
                 'Request body'
             ].join(eol);
         }
+
         function getFormRequest(eol, start, end) {
             return [
                 'GET /path',
@@ -630,12 +647,13 @@ describe('Parser', function () {
                 'field' + end
             ].join(eol);
         }
+
         context('When user does not provide configuration', function () {
             const eol = '\n';
             const start = '"""';
             const end = '""""';
             let parser;
-            beforeEach(function() {
+            beforeEach(function () {
                 parser = new Parser();
             });
             it('Parses with default eol indicator', function () {
@@ -659,7 +677,7 @@ describe('Parser', function () {
             const start = '<<<<<';
             const end = '>>>>>';
             let parser;
-            beforeEach(function() {
+            beforeEach(function () {
                 parser = new Parser({
                     eol: eol,
                     multilineStart: start,
