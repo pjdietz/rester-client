@@ -2,7 +2,7 @@
 
 [![Travis](https://img.shields.io/travis/pjdietz/rester-client.svg?style=flat-square)](https://travis-ci.org/pjdietz/rester-client)
 [![Coveralls](https://img.shields.io/coveralls/pjdietz/rester-client.svg?style=flat-square)](https://coveralls.io/r/pjdietz/rester-client)
-
+[![GitHub license](https://img.shields.io/github/license/pjdietz/rester-atom.svg?style=flat-square)](LICENSE.md)
 
 RESTer is a library for making HTTP requests from a text file or string.
 
