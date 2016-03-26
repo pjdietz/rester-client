@@ -51,15 +51,15 @@ class Parser {
     }
 
     ensureUri() {
-        if (!this.result.options.host) {
+        if (!this.result.options.hostname) {
             let hostHeaderValue = valueForCaseInsensitiveKey(
                 this.result.options.headers, 'Host');
             if (hostHeaderValue) {
                 let parts = hostHeaderValue.split(':', 2);
                 if (parts.length === 1) {
-                    this.result.options.host = hostHeaderValue;
+                    this.result.options.hostname = hostHeaderValue;
                 } else {
-                    this.result.options.host = parts[0];
+                    this.result.options.hostname = parts[0];
                     this.result.options.port = parseInt(parts[1], 10);
                 }
             }
@@ -169,7 +169,7 @@ class Parser {
                 this.result.options[key] = normalizeProtocol(value);
                 break;
             case 'auth':
-            case 'host':
+            case 'hostname':
             case 'port':
                 this.result.options[key] = value;
                 break;

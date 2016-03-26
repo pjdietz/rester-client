@@ -318,7 +318,7 @@ describe('Parser', function () {
                     });
                     it('Uses URI parsed from request line', function () {
                         expect(result.options.protocol).to.equal('http:');
-                        expect(result.options.host).to.equal('myhost.com');
+                        expect(result.options.hostname).to.equal('myhost.com');
                         expect(result.options.port).to.be.null;
                     });
                     it('Does not supply a host header', function () {
@@ -330,14 +330,14 @@ describe('Parser', function () {
                         result = parser.parse([
                             'GET http://myhost.com',
                             '@protocol: https',
-                            '@host: yourhost.com',
+                            '@hostname: yourhost.com',
                             '@port: 8080',
                             '@auth: rufus:secret'
                         ].join(eol));
                     });
                     it('Uses URI parsed from request line', function () {
                         expect(result.options.protocol).to.equal('https:');
-                        expect(result.options.host).to.equal('yourhost.com');
+                        expect(result.options.hostname).to.equal('yourhost.com');
                         expect(result.options.port).to.equal(8080);
                         expect(result.options.auth).to.equal('rufus:secret');
                     });
@@ -354,7 +354,7 @@ describe('Parser', function () {
                     });
                     it('Uses URI parsed from request line', function () {
                         expect(result.options.protocol).to.equal('http:');
-                        expect(result.options.host).to.equal('myhost.com');
+                        expect(result.options.hostname).to.equal('myhost.com');
                         expect(result.options.port).to.be.null;
                     });
                     it('Includes provided Host header', function () {
@@ -369,7 +369,7 @@ describe('Parser', function () {
                     });
                     it('Does not provide a URI', function () {
                         expect(result.options.protocol).to.be.null;
-                        expect(result.options.host).to.be.null;
+                        expect(result.options.hostname).to.be.null;
                         expect(result.options.port).to.be.null;
                     });
                     it('Does not supply a host header', function () {
@@ -381,14 +381,14 @@ describe('Parser', function () {
                         result = parser.parse([
                             'GET / HTTP/1.1',
                             '@protocol: https',
-                            '@host: yourhost.com',
+                            '@hostname: yourhost.com',
                             '@port: 8080',
                             '@auth: rufus:secret'
                         ].join(eol));
                     });
                     it('Uses URI parsed from request line', function () {
                         expect(result.options.protocol).to.equal('https:');
-                        expect(result.options.host).to.equal('yourhost.com');
+                        expect(result.options.hostname).to.equal('yourhost.com');
                         expect(result.options.port).to.equal(8080);
                         expect(result.options.auth).to.equal('rufus:secret');
                     });
@@ -406,7 +406,7 @@ describe('Parser', function () {
                         });
                         it('Uses URI parsed from Host header', function () {
                             expect(result.options.protocol).not.to.be.defined;
-                            expect(result.options.host).to.equal('yourdomain.com');
+                            expect(result.options.hostname).to.equal('yourdomain.com');
                             expect(result.options.port).to.equal(9090);
                         });
                         it('Includes provided Host header', function () {
@@ -422,7 +422,7 @@ describe('Parser', function () {
                         });
                         it('Uses URI parsed from Host header', function () {
                             expect(result.options.protocol).not.to.be.defined;
-                            expect(result.options.host).to.equal('yourdomain.com');
+                            expect(result.options.hostname).to.equal('yourdomain.com');
                             expect(result.options.port).not.to.be.defined;
                         });
                         it('Includes provided Host header', function () {
