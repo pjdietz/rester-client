@@ -108,7 +108,7 @@ describe('Transaction', function () {
                 });
                 addListeners();
                 transaction.send();
-                setTimeout(done, delay)
+                setTimeout(done, delay);
             });
             it('Emits "request" once', function () {
                 expect(requestListener).calledOnce;

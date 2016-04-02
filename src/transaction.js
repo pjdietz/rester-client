@@ -28,6 +28,14 @@ class Transaction extends EventEmitter {
         this.history = [];
     }
 
+    getRequest() {
+        return this.requests[0];
+    }
+
+    getResponse() {
+        return this.responses[this.responses.length - 1];
+    }
+
     send() {
         this.sendRequest(this.requestOptions, this.requestBody);
         this.emit('request');
@@ -135,14 +143,6 @@ class Transaction extends EventEmitter {
     getUrlFromCurrentLocation(uri) {
         let location = this.history[this.history.length - 1];
         return url.resolve(location, uri);
-    }
-
-    getRequest() {
-        return this.requests[0];
-    }
-
-    getResponse() {
-        return this.responses[this.responses.length - 1];
     }
 }
 
