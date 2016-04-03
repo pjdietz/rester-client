@@ -14,7 +14,7 @@ class Client {
             opts.options,
             opts.body,
             this.mergeConfiguration(opts.configuration)
-        )
+        );
     }
     mergeConfiguration(configuration) {
         let merged = {};
