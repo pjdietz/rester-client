@@ -1,0 +1,7 @@
+.idea
+.jshintrc
+.npmignore
+.travis.yml
+coverage
+node_modules
+test
