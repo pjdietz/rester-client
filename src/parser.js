@@ -105,6 +105,10 @@ class Parser {
             let property = properties[i];
             this.result.options[property] = uri[property];
         }
+        // Ensure the options contain a protocol.
+        if (!this.result.options.protocol) {
+            this.result.options.protocol = normalizeProtocol('');
+        }
     }
 
     parseHeaderSectionLine (line) {

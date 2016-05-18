@@ -43,7 +43,7 @@ describe('Parser', function () {
                 description: 'Method, path only',
                 request: 'POST /cats',
                 method: 'POST',
-                protocol: null,
+                protocol: 'http:',
                 auth: null,
                 host: null,
                 hostname: null,
@@ -54,7 +54,7 @@ describe('Parser', function () {
                 description: 'Blank lines at start',
                 request: ['', '   ', 'PUT /hamsters'].join(eol),
                 method: 'PUT',
-                protocol: null,
+                protocol: 'http:',
                 auth: null,
                 host: null,
                 hostname: null,
@@ -65,7 +65,7 @@ describe('Parser', function () {
                 description: 'Method, path, and version',
                 request: 'OPTIONS /guinea-pigs HTTP/1.1',
                 method: 'OPTIONS',
-                protocol: null,
+                protocol: 'http:',
                 auth: null,
                 host: null,
                 hostname: null,
@@ -368,7 +368,6 @@ describe('Parser', function () {
                         result = parser.parse('GET / HTTP/1.1');
                     });
                     it('Does not provide a URI', function () {
-                        expect(result.options.protocol).to.be.null;
                         expect(result.options.hostname).to.be.null;
                         expect(result.options.port).to.be.null;
                     });
