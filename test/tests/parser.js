@@ -40,6 +40,17 @@ describe('Parser', function () {
                 path: '/dogs?name=bear'
             },
             {
+                description: 'Method, no protocol',
+                request: 'POST localhost/cats',
+                method: 'POST',
+                protocol: 'http:',
+                auth: null,
+                host: 'localhost',
+                hostname: 'localhost',
+                port: null,
+                path: '/cats'
+            },
+            {
                 description: 'Method, path only',
                 request: 'POST /cats',
                 method: 'POST',

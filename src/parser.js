@@ -93,12 +93,12 @@ class Parser {
         if (words.length === 1) {
             // For one-word lines, use the default method; the word as the URI.
             this.result.options.method = 'GET';
-            uri = url.parse(words[0]);
+            uri = this.parseUri(words[0]);
         } else {
             // For two-or-more-word lines, the first word is the method; The
             // second is the URI; others are ignored.
             this.result.options.method = words[0];
-            uri = url.parse(words[1]);
+            uri = this.parseUri(words[1]);
         }
         // Copy specific properties from the parsed URI to the results.
         for (let i = 0; i < properties.length; ++i) {
@@ -109,6 +109,21 @@ class Parser {
         if (!this.result.options.protocol) {
             this.result.options.protocol = normalizeProtocol('');
         }
+    }
+
+    parseUri(uri) {
+        if (!this.isPathOnly(uri) && !this.containsProtocol(uri)) {
+            uri = 'http://' + uri;
+        }
+        return url.parse(uri);
+    }
+
+    isPathOnly(uri) {
+        return uri[0] === '/';
+    }
+
+    containsProtocol(uri) {
+        return uri.includes('://');
     }
 
     parseHeaderSectionLine (line) {
