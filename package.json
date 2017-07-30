@@ -1,6 +1,6 @@
 {
   "name": "rester-client",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Library for making HTTP requuests from strings",
   "author": "PJ Dietz <pjdietz@gmail.com>",
   "main": "src/index.js",
