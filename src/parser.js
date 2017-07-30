@@ -232,7 +232,8 @@ class Parser {
             }
             // Do not override content-length header if set explicitly
             if (!valueForCaseInsensitiveKey(this.result.options.headers, 'content-length')) {
-                this.result.options.headers['Content-length'] = '' + this.result.body.length;
+                this.result.options.headers['Content-length'] = ''
+                  + Buffer.byteLength(this.result.body, 'utf8')
             }
         }
     }
