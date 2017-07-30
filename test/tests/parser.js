@@ -208,7 +208,7 @@ describe('Parser', function () {
             });
             it('Does not parses header without :', function () {
                 let result = parser.parse(request);
-                expect(result.options.headers['Incomplete-header']).not.to.be.defined;
+                expect(result.options.headers['Incomplete-header']).to.be.undefined;
             });
         });
 
@@ -333,7 +333,7 @@ describe('Parser', function () {
                         expect(result.options.port).to.be.null;
                     });
                     it('Does not supply a host header', function () {
-                        expect(result.options.headers.Host).not.to.be.defined;
+                        expect(result.options.headers.Host).to.be.undefined;
                     });
                 });
                 context('And request contains options but no Host header', function () {
@@ -353,7 +353,7 @@ describe('Parser', function () {
                         expect(result.options.auth).to.equal('rufus:secret');
                     });
                     it('Does not supply a Host header', function () {
-                        expect(result.options.headers.Host).not.to.be.defined;
+                        expect(result.options.headers.Host).to.be.undefined;
                     });
                 });
                 context('And request contains Host header', function () {
@@ -383,7 +383,7 @@ describe('Parser', function () {
                         expect(result.options.port).to.be.null;
                     });
                     it('Does not supply a host header', function () {
-                        expect(result.options.headers.Host).not.to.be.defined;
+                        expect(result.options.headers.Host).to.be.undefined;
                     });
                 });
                 context('And request contains options but no Host header', function () {
@@ -403,7 +403,7 @@ describe('Parser', function () {
                         expect(result.options.auth).to.equal('rufus:secret');
                     });
                     it('Does not supply a Host header', function () {
-                        expect(result.options.headers.Host).not.to.be.defined;
+                        expect(result.options.headers.Host).to.be.undefined;
                     });
                 });
                 context('And request contains Host header', function () {
@@ -415,7 +415,6 @@ describe('Parser', function () {
                             ].join(eol));
                         });
                         it('Uses URI parsed from Host header', function () {
-                            expect(result.options.protocol).not.to.be.defined;
                             expect(result.options.hostname).to.equal('yourdomain.com');
                             expect(result.options.port).to.equal(9090);
                         });
@@ -431,9 +430,8 @@ describe('Parser', function () {
                             ].join(eol));
                         });
                         it('Uses URI parsed from Host header', function () {
-                            expect(result.options.protocol).not.to.be.defined;
                             expect(result.options.hostname).to.equal('yourdomain.com');
-                            expect(result.options.port).not.to.be.defined;
+                            expect(result.options.port).to.be.null;
                         });
                         it('Includes provided Host header', function () {
                             expect(result.options.headers.host).to.equal('yourdomain.com');
